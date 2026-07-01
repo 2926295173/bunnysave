@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "站点地图",
   robots: { index: true, follow: true },
 };
+export const dynamic = "force-dynamic";
 
 export default async function SitemapInfoPage() {
   const deals = await getDeals();

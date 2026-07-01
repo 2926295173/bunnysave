@@ -106,5 +106,4 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
   );
 }
 
-export const dynamicParams = true;
-export const revalidate = 600;
+export const dynamic = "force-dynamic";

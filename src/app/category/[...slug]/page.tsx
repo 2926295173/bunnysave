@@ -61,7 +61,10 @@ export async function generateMetadata({
   };
 }
 
-export const revalidate = 600;
+// Catalog pages always render against live Postgres data, so opt into
+// dynamic rendering (avoids DYNAMIC_SERVER_USAGE when DB-backed reads
+// collide with static prerendering of searchParams).
+export const dynamic = "force-dynamic";
 
 export default async function CategoryCatchAll({
   params,

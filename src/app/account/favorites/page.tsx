@@ -4,6 +4,7 @@ import { AccountPanel } from "@/components/account/AccountPanel";
 import { getDeals } from "@/lib/deals";
 
 export const metadata = { title: "我的收藏", robots: { index: false } };
+export const dynamic = "force-dynamic";
 
 export default async function FavoritesPage() {
   // Until we wire real favorites to the user, surface a CTA.

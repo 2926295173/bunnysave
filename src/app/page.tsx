@@ -2,7 +2,7 @@ import { getDeals, getBrands } from "@/lib/deals";
 import { DealCard } from "@/components/DealCard";
 import { Sidebar } from "@/components/Sidebar";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export default async function HomePage({
   searchParams,

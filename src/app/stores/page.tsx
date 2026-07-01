@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: "查看 bunnysave.com 收录的全部商家列表，按字母排序。",
 };
 
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 export default async function StoresPage({
   searchParams,
