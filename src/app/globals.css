@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --brand-from: #f97316;
+  --brand-to: #ea580c;
+}
+
+html,
+body {
+  background: #faf9f7;
+  color: #1f2937;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.gradient-brand {
+  background: linear-gradient(135deg, var(--brand-from), var(--brand-to));
+}
+.gradient-brand-text {
+  background: linear-gradient(135deg, var(--brand-from), var(--brand-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Soft card shadow used by every panel on bunnysave */
+.card-shadow {
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* Smooth scroll for in-page anchors */
+html { scroll-behavior: smooth; }
+
+/* Hide arrows on number inputs */
+input[type="search"]::-webkit-search-cancel-button { display: none; }
+
+/* Floating decorations on the auth page */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50%      { transform: translateY(-8px) rotate(0); }
+}
+@keyframes float-medium {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50%      { transform: translateY(-12px) rotate(0); }
+}
+@keyframes float-fast {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50%      { transform: translateY(-16px) rotate(0); }
+}
+.animate-float-slow   { animation: float-slow   5s ease-in-out infinite; }
+.animate-float-medium { animation: float-medium 4s ease-in-out infinite; }
+.animate-float-fast   { animation: float-fast   3s ease-in-out infinite; }

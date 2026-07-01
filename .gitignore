@@ -1,0 +1,13 @@
+node_modules/
+.next/
+.env*.local
+out/
+.DS_Store
+*.log
+.venv/
+data/homepage.html
+data/rsc_decoded.html
+data/auth.sqlite
+data/auth.sqlite-journal
+data/auth.sqlite-wal
+data/auth.sqlite-shm
