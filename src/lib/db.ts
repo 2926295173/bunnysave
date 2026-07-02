@@ -57,8 +57,11 @@ async function ensureSchema() {
       image         TEXT,
       password_hash TEXT,
       provider      TEXT NOT NULL DEFAULT 'credentials',
+      role          TEXT NOT NULL DEFAULT 'user',
       created_at    BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT
     )`);
+  // Idempotent column add for pre-existing tables that predate `role`.
+  await sql(Neonql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'`);
   await sql(Neonql`
     CREATE TABLE IF NOT EXISTS magic_links (
       token       TEXT PRIMARY KEY,
@@ -67,6 +70,34 @@ async function ensureSchema() {
       consumed_at BIGINT
     )`);
   await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_magic_links_email ON magic_links(email)`);
+
+  // ---------- Admin: deal submissions + audit log ----------
+  await sql(Neonql`
+    CREATE TABLE IF NOT EXISTS deal_submissions (
+      id              TEXT PRIMARY KEY,
+      title           TEXT NOT NULL,
+      url             TEXT NOT NULL,
+      description     TEXT,
+      submitter_email TEXT,
+      status          TEXT NOT NULL DEFAULT 'pending',
+      reviewed_at     BIGINT,
+      reviewer_id     TEXT REFERENCES users(id) ON DELETE SET NULL,
+      created_at      BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT
+    )`);
+  await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_submissions_status ON deal_submissions(status, created_at DESC)`);
+  await sql(Neonql`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id          TEXT PRIMARY KEY,
+      actor_id    TEXT REFERENCES users(id) ON DELETE SET NULL,
+      action      TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id   TEXT,
+      before      TEXT,
+      after       TEXT,
+      created_at  BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT
+    )`);
+  await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC)`);
+  await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)`);
 
   // ---------- Deal catalog (categories / brands / deals / join) ----------
   await sql(Neonql`

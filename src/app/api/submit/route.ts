@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { exec } from "@/lib/db";
+import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
 
@@ -21,6 +23,7 @@ export async function POST(req: Request) {
   }
   const title = String(body.title ?? "").trim();
   const url = String(body.url ?? "").trim();
+  const email = String(body.email ?? "").trim() || null;
 
   if (!title || !url) {
     return NextResponse.json({ ok: false, message: "请提供标题和详情链接" }, { status: 400 });
@@ -32,9 +35,26 @@ export async function POST(req: Request) {
     );
   }
 
-  // In production this would write to a `submit_queue` table and notify editors.
-  // For now we log so editors (and you) can see submissions in the Vercel logs.
-  console.log("[submit]", { title, url, store: body.store, price: body.price, email: body.email });
+  // Pack any extra metadata into the description column so admins can see it.
+  const description = [
+    body.image ? `封面: ${body.image}` : null,
+    body.price ? `价格: ${body.price}` : null,
+    body.store ? `商家: ${body.store}` : null,
+    body.notes ? `备注: ${body.notes}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n") || null;
+
+  try {
+    await exec(
+      `INSERT INTO deal_submissions (id, title, url, description, submitter_email, status)
+       VALUES ($1, $2, $3, $4, $5, 'pending')`,
+      [randomUUID(), title, url, description, email],
+    );
+  } catch (err) {
+    console.error("[submit] db error:", err);
+    return NextResponse.json({ ok: false, message: "提交失败，请稍后再试" }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true, message: "已提交，等待编辑审核" });
 }

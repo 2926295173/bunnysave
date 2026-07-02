@@ -1,4 +1,5 @@
 import NextAuth, { type DefaultSession } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
@@ -9,7 +10,15 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string;
+      role: "user" | "admin";
     } & DefaultSession["user"];
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    uid?: string;
+    role?: "user" | "admin";
   }
 }
 
@@ -77,35 +86,50 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user, account }) {
       if (!user?.email) return false;
       const email = user.email.toLowerCase();
-      if (account?.provider === "google") {
-        const existing = await fetchOne<UserRow>(
-          "SELECT id, provider FROM users WHERE email = $1",
-          [email],
+
+      // Auto-promote to admin if the email is in ADMIN_EMAILS. The check runs
+      // on every sign-in so the env var is consulted dynamically (no restart
+      // needed to grant admin).
+      const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
+      const shouldBeAdmin = adminEmails.includes(email);
+
+      const existing = await fetchOne<UserRow>(
+        "SELECT id, role FROM users WHERE email = $1",
+        [email],
+      );
+      if (!existing) {
+        await exec(
+          "INSERT INTO users (id, email, name, image, provider, role) VALUES ($1, $2, $3, $4, $5, $6)",
+          [
+            randomUUID(),
+            email,
+            user.name ?? null,
+            user.image ?? null,
+            account?.provider ?? "credentials",
+            shouldBeAdmin ? "admin" : "user",
+          ],
         );
-        if (!existing) {
-          await exec(
-            "INSERT INTO users (id, email, name, image, provider) VALUES ($1, $2, $3, $4, $5)",
-            [randomUUID(), email, user.name ?? null, user.image ?? null, "google"],
-          );
-        } else if (!/google/.test(existing.provider)) {
-          await exec(
-            "UPDATE users SET provider = provider || ',google' WHERE id = $1",
-            [existing.id],
-          );
-        }
+      } else if (shouldBeAdmin && existing.role !== "admin") {
+        await exec("UPDATE users SET role = 'admin' WHERE id = $1", [existing.id]);
+      } else if (!shouldBeAdmin && account?.provider === "google" && !/google/.test(account.provider)) {
+        // keep existing provider tag, no-op
       }
       return true;
     },
     async jwt({ token, user }) {
       if (user?.email) {
         const row = await fetchOne<UserRow>(
-          "SELECT id, name, image FROM users WHERE email = $1",
+          "SELECT id, name, image, role FROM users WHERE email = $1",
           [user.email.toLowerCase()],
         );
         if (row) {
           token.uid = row.id;
           token.name = row.name ?? undefined;
           token.picture = row.image ?? undefined;
+          token.role = (row.role as "user" | "admin") ?? "user";
         }
       }
       return token;
@@ -113,6 +137,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (session.user && token.uid) {
         session.user.id = token.uid as string;
+        session.user.role = (token.role as "user" | "admin") ?? "user";
         if (token.name) session.user.name = token.name as string;
         if (token.picture) session.user.image = token.picture as string;
       }
@@ -174,5 +199,6 @@ export type UserRow = {
   image: string | null;
   password_hash: string | null;
   provider: string;
+  role: "user" | "admin";
   created_at: number | null;
 };
