@@ -117,6 +117,31 @@ def main() -> int:
         )
 
     # ---------- brands (dedupe logos, derive name from filename heuristics) ----------
+    # 1. Pull the human-readable brand name from the sidebar widget by joining
+    #    the <a href="/store/<slug>">…<img … brands/<hash>… >…<h3>NAME</h3> siblings.
+    sidebar_brand: dict[str, str] = {}
+    for sm in re.finditer(
+        r'href="/store/([a-z0-9_]+)"[\s\S]{0,3000}?brands(?:/|%2F|\.)([a-f0-9]{32})[\s\S]{0,500}?truncate">([^<]+)</h3>',
+        body,
+    ):
+        sidebar_brand[sm.group(2)] = sm.group(3).strip()
+
+    # 2. Build a name guess from the deal title when the brand image sits in a
+    #    card. The bunnysave frontend puts the brand chip text right after the
+    #    brand logo; we look for the nearest preceding `font-medium … bg-gray-100
+    #    text-gray-600">NAME` span to the deal's first brand image.
+    card_brand: dict[str, str] = {}
+    for m in re.finditer(
+        r'(<span class="font-medium px-2\.5 py-0\.5 rounded-full bg-gray-100 text-gray-600">)([^<]+)(</span>)',
+        body,
+    ):
+        name = m.group(2).replace("&#x27;", "'").strip()
+        # the brand image immediately follows this span; capture its hash
+        tail = body[m.end():m.end() + 2000]
+        img = re.search(r'brands(?:/|%2F|\.)([a-f0-9]{32})', tail)
+        if img and img.group(1) not in card_brand:
+            card_brand[img.group(1)] = name
+
     brands_seen: set[str] = set()
     brands: list[dict] = []
     for img in img_map.values():
@@ -126,8 +151,16 @@ def main() -> int:
         if bid in brands_seen:
             continue
         brands_seen.add(bid)
-        # friendly name: just title-case filename without hash
-        name = re.sub(r"[-_]+", " ", bid).title() if re.fullmatch(r"[a-f0-9]+", bid) else bid
+        # Prefer sidebar / card mappings; fall back to title-cased filename
+        # only when the file id is a clean hex hash.
+        if bid in sidebar_brand:
+            name = sidebar_brand[bid]
+        elif bid in card_brand:
+            name = card_brand[bid]
+        elif re.fullmatch(r"[a-f0-9]+", bid):
+            name = re.sub(r"[-_]+", " ", bid).title()
+        else:
+            name = bid
         brands.append({"id": bid, "name": name, "logo": img["url"]})
 
     # ---------- write outputs ----------
