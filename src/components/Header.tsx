@@ -158,9 +158,10 @@ function UserMenu({
       <Link
         href="/login"
         aria-label="登录"
-        className="hidden md:flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 ring-1 ring-gray-200 transition hover:ring-[#F97316]"
+        className="hidden md:flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 bg-white/60 hover:bg-white border border-gray-200/60 hover:border-gray-300 rounded-xl transition-all duration-200 shadow-sm"
       >
-        <UserIcon className="h-5 w-5" />
+        <UserIcon className="h-4 w-4" />
+        <span>登录</span>
       </Link>
     );
   }
