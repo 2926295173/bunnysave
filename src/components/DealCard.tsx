@@ -3,10 +3,13 @@ import Link from "next/link";
 import { type Deal } from "@/lib/types";
 import { localImageFor } from "@/lib/image-path";
 
+type Variant = "horizontal" | "compact";
+
 type Props = {
   deal: Deal;
   priority?: boolean;
   index?: number;
+  variant?: Variant;
 };
 
 /**
@@ -18,10 +21,23 @@ type Props = {
  *  - discount text in brand color
  *  - description (2 lines, gray)
  *  - "获取优惠" button on the right (desktop only)
+ *
+ * Use `variant="compact"` when the card sits inside a multi-column grid
+ * (search, category, related-deals). The horizontal layout is full-width
+ * and gets crushed to nothing inside a 2/3/4-column grid.
  */
-export function DealCard({ deal, priority = false, index: propsIndex = 0 }: Props) {
+export function DealCard({
+  deal,
+  priority = false,
+  index: propsIndex = 0,
+  variant = "horizontal",
+}: Props) {
   const cover = localImageFor(deal.cover, "deals");
   const meta = deriveMeta(deal, propsIndex);
+
+  if (variant === "compact") {
+    return <CompactDealCard deal={deal} cover={cover} meta={meta} priority={priority} />;
+  }
 
   return (
     <Link
@@ -89,6 +105,61 @@ export function DealCard({ deal, priority = false, index: propsIndex = 0 }: Prop
             </span>
           </div>
         </div>
+      </div>
+    </Link>
+  );
+}
+
+/**
+ * Vertical "compact" card for use inside multi-column grids (search, category,
+ * related deals). The horizontal layout would be squashed to nothing at the
+ * widths those grids assign.
+ */
+function CompactDealCard({
+  deal,
+  cover,
+  meta,
+  priority,
+}: {
+  deal: Deal;
+  cover: string;
+  meta: DealMeta;
+  priority: boolean;
+}) {
+  return (
+    <Link
+      href={`/deal/${deal.id}`}
+      data-deal-card
+      className="group flex flex-col h-full bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 card-shadow"
+    >
+      <div className="relative aspect-[4/3] w-full bg-gray-50">
+        {meta.badge ? (
+          <div className="absolute top-2 left-2 z-10 px-2.5 py-0.5 text-[11px] font-bold rounded-full text-white gradient-brand">
+            {meta.badge}
+          </div>
+        ) : null}
+        <Image
+          src={cover}
+          alt={deal.title}
+          fill
+          priority={priority}
+          sizes="(max-width: 768px) 50vw, 25vw"
+          className="object-contain p-3 group-hover:scale-105 transition-transform duration-300"
+        />
+      </div>
+      <div className="flex flex-col flex-1 p-3 gap-1.5">
+        <div className="flex items-center flex-wrap gap-1.5 text-[11px] text-gray-500">
+          <span className="font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+            {meta.brandLabel}
+          </span>
+          <span className="text-gray-400">{meta.time}</span>
+        </div>
+        <h3 className="text-sm font-bold text-gray-800 line-clamp-2 leading-snug group-hover:text-gray-600 transition-colors">
+          {deal.title}
+        </h3>
+        <p className="text-sm font-bold gradient-brand-text mt-auto pt-1">
+          {meta.priceLine}
+        </p>
       </div>
     </Link>
   );

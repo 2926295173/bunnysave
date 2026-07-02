@@ -156,7 +156,7 @@ export default async function CategoryCatchAll({
       ) : (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {slice.map((d) => (
-            <DealCard key={d.id} deal={d} />
+            <DealCard key={d.id} deal={d} variant="compact" />
           ))}
         </div>
       )}

@@ -98,7 +98,7 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
         <h2 id="related-heading" className="mb-4 text-2xl font-extrabold tracking-tight text-bunny-ink">相关优惠</h2>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {related.map((d) => (
-            <DealCard key={d.id} deal={d} />
+            <DealCard key={d.id} deal={d} variant="compact" />
           ))}
         </div>
       </section>
