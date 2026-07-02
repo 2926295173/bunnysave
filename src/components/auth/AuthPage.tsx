@@ -9,9 +9,10 @@ type Mode = "login" | "signup";
 
 interface Props {
   mode: Mode;
+  googleEnabled: boolean;
 }
 
-export function AuthPage({ mode }: Props) {
+export function AuthPage({ mode, googleEnabled }: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const urlError = params.get("error");
@@ -34,6 +35,11 @@ export function AuthPage({ mode }: Props) {
   function setMsgFn(s: typeof setMsg, m: string) { s(m); setState("err"); }
 
   async function signInWithGoogle() {
+    if (!googleEnabled) {
+      setState("err");
+      setMsg("Google 登录暂未配置，请使用邮箱 + 密码或魔法链接登录。");
+      return;
+    }
     setState("submitting");
     setMsg("");
     try {
@@ -166,11 +172,17 @@ export function AuthPage({ mode }: Props) {
             <button
               type="button"
               onClick={signInWithGoogle}
-              disabled={state === "submitting"}
-              className="w-full flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 active:scale-[0.98] disabled:opacity-60"
+              disabled={!googleEnabled || state === "submitting"}
+              title={googleEnabled ? "使用 Google 账号登录" : "Google 登录暂未配置"}
+              className="w-full flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 active:scale-[0.98] disabled:opacity-60 disabled:hover:bg-white"
             >
               <GoogleG className="h-5 w-5" />
               使用 Google 账号{isLogin ? "登录" : "注册"}
+              {!googleEnabled ? (
+                <span className="ml-1 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+                  即将推出
+                </span>
+              ) : null}
             </button>
             <button
               type="button"
