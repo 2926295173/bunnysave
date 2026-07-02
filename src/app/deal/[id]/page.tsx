@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { getDeal, localImageFor } from "@/lib/deals";
+import { getDealFull, getDeals, getBrands, localImageFor } from "@/lib/deals";
 import { DealCard } from "@/components/DealCard";
-import { getDeals } from "@/lib/deals";
+import { Sidebar } from "@/components/Sidebar";
 
 type Params = { id: string };
 
@@ -21,88 +21,407 @@ export async function generateStaticParams(): Promise<Params[]> {
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { id } = await params;
-  const deal = await getDeal(id);
+  const deal = await getDealFull(id);
   if (!deal) return { title: "优惠不存在" };
+  const desc = deal.description
+    ? deal.description.replace(/\*\*|`/g, "").slice(0, 160)
+    : deal.title;
   return {
     title: deal.title,
-    description: `${deal.title} — 来自${deal.source}的精选优惠`,
-    openGraph: { title: deal.title, images: [localImageFor(deal.cover, "deals")] },
+    description: desc,
+    openGraph: { title: deal.title, description: desc, images: [localImageFor(deal.cover, "deals")] },
   };
 }
 
 export default async function DealDetailPage({ params }: { params: Promise<Params> }) {
   const { id } = await params;
-  const deal = await getDeal(id);
+  const deal = await getDealFull(id);
   if (!deal) notFound();
 
-  const all = await getDeals();
-  const related = all.filter((d) => d.id !== deal.id).slice(0, 4);
+  const [allDeals, brands] = await Promise.all([
+    getDeals(),
+    getBrands(),
+  ]);
+  const related = allDeals.filter((d) => d.id !== deal.id).slice(0, 5);
+
+  const ctaHref = deal.cta ?? "https://www.bunnysave.com/";
+  const discountBadge = deal.discount?.match(/(\d+)\s*%/)?.[0] ?? null;
+  const subline = deal.discount?.replace(/-/, "").replace(/\d+\s*%/, "").trim() || null;
+  const dealDate = formatDate(deal.publishedAt);
 
   return (
-    <article className="mx-auto max-w-4xl px-4 py-6 md:py-10">
-      <nav className="mb-4 text-sm text-bunny-muted" aria-label="面包屑">
-        <Link href="/" className="hover:text-bunny-accent">首页</Link>
-        <span className="mx-2">/</span>
-        <Link href="/category/daily-deals" className="hover:text-bunny-accent">每日精选</Link>
-        <span className="mx-2">/</span>
-        <span className="text-bunny-ink">{deal.title.slice(0, 30)}{deal.title.length > 30 ? "…" : ""}</span>
-      </nav>
+    <div className="mx-auto max-w-6xl px-4 py-6">
+      <div className="flex gap-6">
+        <div className="flex-1 min-w-0">
+          {/* Breadcrumb */}
+          <nav aria-label="面包屑" className="mb-4 text-sm text-bunny-muted">
+            <ol className="flex items-center gap-2 overflow-hidden">
+              <li>
+                <Link href="/" className="hover:text-bunny-accent whitespace-nowrap">首页</Link>
+              </li>
+              <li>
+                <ChevronRight />
+                <Link
+                  href={`/category/daily-deals`}
+                  className="ml-2 hover:text-bunny-accent whitespace-nowrap"
+                >
+                  每日优惠
+                </Link>
+              </li>
+              <li className="min-w-0">
+                <ChevronRight />
+                <span className="ml-2 text-bunny-ink truncate">{deal.title}</span>
+              </li>
+            </ol>
+          </nav>
 
-      <header className="mb-6">
-        <h1 className="text-3xl font-extrabold leading-tight text-bunny-ink md:text-4xl">{deal.title}</h1>
-        <p className="mt-2 text-sm text-bunny-muted">来源：{deal.source}</p>
-      </header>
+          {/* Hero card */}
+          <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
+            <div className="p-6">
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Square image (288px on lg) */}
+                <div className="lg:w-72 flex-shrink-0">
+                  <div className="group relative aspect-square overflow-hidden rounded-lg bg-gray-50 border border-gray-100">
+                    <Image
+                      src={localImageFor(deal.cover, "deals")}
+                      alt={deal.title}
+                      fill
+                      priority
+                      sizes="(max-width: 1024px) 100vw, 288px"
+                      className="object-contain p-4 transition-transform group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-full">
+                        Click to enlarge
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-      <div className="relative mb-8 aspect-[16/9] overflow-hidden rounded-3xl bg-bunny-soft">
-        <Image
-          src={localImageFor(deal.cover, "deals")}
-          alt={deal.title}
-          fill
-          priority
-          sizes="(max-width: 768px) 100vw, 800px"
-          className="object-cover"
-        />
-        {deal.brandLogo ? (
-          <Image
-            src={localImageFor(deal.brandLogo, "brands")}
-            alt=""
-            width={64}
-            height={64}
-            className="absolute left-4 top-4 h-14 w-14 rounded-full bg-white p-1 object-contain ring-2 ring-white/70"
-          />
-        ) : null}
-      </div>
+                {/* Title + CTA */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 text-sm text-bunny-muted mb-3">
+                    {deal.brandName ? (
+                      <Link
+                        href={deal.brandId ? `/search?q=${encodeURIComponent(deal.brandName)}` : "#"}
+                        className="font-medium hover:underline"
+                        style={{ color: "#F97316" }}
+                      >
+                        {deal.brandName}
+                      </Link>
+                    ) : (
+                      <span className="font-medium" style={{ color: "#F97316" }}>{deal.source}</span>
+                    )}
+                    <span>•</span>
+                    <span>{dealDate}</span>
+                  </div>
 
-      <div className="prose prose-slate max-w-none rounded-2xl border border-bunny-line bg-white p-6">
-        <h2 className="text-xl font-bold">优惠详情</h2>
-        <p>这是一条来自 {deal.source} 的精选优惠。请通过下方按钮查看原始优惠信息。</p>
-        <p>
-          <a
-            href={deal.cta ?? "https://www.bunnysave.com/"}
-            target="_blank"
-            rel="nofollow noopener sponsored"
-            className="inline-flex items-center gap-2 rounded-full bg-bunny-accent px-5 py-2 font-semibold text-white shadow-sm transition hover:brightness-110"
-          >
-            查看完整优惠 →
-          </a>
-        </p>
-        <h3>使用说明</h3>
-        <ul>
-          <li>部分优惠为限时或限地区，请仔细阅读商家页面条款。</li>
-          <li>我们与商家可能有联盟合作关系 —— 通过我们的链接下单，商家会向我们支付佣金，<strong>不会</strong>增加你的任何费用。</li>
-          <li>价格以结算页为准。如优惠失效，欢迎反馈。</li>
-        </ul>
-      </div>
+                  <h1 className="text-xl lg:text-2xl font-bold text-bunny-ink mb-2">{deal.title}</h1>
 
-      <section aria-labelledby="related-heading" className="mt-12">
-        <h2 id="related-heading" className="mb-4 text-2xl font-extrabold tracking-tight text-bunny-ink">相关优惠</h2>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {related.map((d) => (
-            <DealCard key={d.id} deal={d} variant="compact" />
-          ))}
+                  {subline ? (
+                    <p className="text-base font-semibold mb-4" style={{ color: "#F97316" }}>
+                      {subline}
+                    </p>
+                  ) : null}
+
+                  {discountBadge ? (
+                    <div className="mb-5">
+                      <div className="flex flex-wrap items-baseline gap-3">
+                        <span
+                          className="inline-flex items-center px-3 py-1 text-white text-sm font-semibold rounded-full"
+                          style={{ background: "linear-gradient(135deg, #F97316, #EA580C)" }}
+                        >
+                          -{discountBadge}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <a
+                      href={ctaHref}
+                      rel="sponsored nofollow noopener noreferrer"
+                      target="_blank"
+                      className="flex-1 min-w-0"
+                    >
+                      <button
+                        className="w-full text-sm sm:text-base py-4 text-white font-semibold rounded-2xl transition-all duration-200 hover:opacity-90 active:scale-[0.98] truncate"
+                        style={{ background: "linear-gradient(135deg, #F97316, #EA580C)" }}
+                      >
+                        点击前往{deal.brandName ? ` ${deal.brandName}` : "商家"}!
+                      </button>
+                    </a>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        title="分享"
+                        aria-label="分享"
+                        className="p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                      >
+                        <ShareIcon className="h-5 w-5 text-gray-500" />
+                      </button>
+                      <button
+                        type="button"
+                        title="收藏此优惠"
+                        aria-label="收藏此优惠"
+                        className="p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-gray-500"
+                      >
+                        <BookmarkIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabs (visual only — content is below) */}
+            <div className="border-t border-gray-100">
+              <div className="border-b border-gray-100">
+                <div className="flex">
+                  <button
+                    type="button"
+                    className="px-6 py-3 text-sm font-medium transition-colors text-[#F97316] border-b-2 border-[#F97316]"
+                  >
+                    优惠详情
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    className="px-6 py-3 text-sm font-medium transition-colors text-gray-400 cursor-not-allowed"
+                  >
+                    产品信息
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <MarkdownBody source={deal.description} />
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <h3 className="font-semibold text-bunny-ink mb-3">注意：</h3>
+                  <ul className="text-sm text-gray-600 space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="text-gray-400">•</span>
+                      <span>价格和库存可能随时变动，恕不另行通知</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-gray-400">•</span>
+                      <span>请访问零售商网站获取最新价格</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Related deals — single column, horizontal cards */}
+          <section aria-labelledby="related-heading" className="mt-8 md:mt-12">
+            <div className="flex items-center gap-3 mb-6">
+              <h2 id="related-heading" className="text-xl md:text-2xl font-bold text-bunny-ink">
+                相关优惠
+              </h2>
+              <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent" />
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              {related.map((d) => (
+                <DealCard key={d.id} deal={d} />
+              ))}
+            </div>
+          </section>
         </div>
-      </section>
-    </article>
+
+        {/* Right sidebar */}
+        <aside className="hidden lg:block w-80 flex-shrink-0">
+          <div className="sticky top-24">
+            <Sidebar latestDeals={allDeals} brands={brands} showFollowUs />
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+/** Minimal markdown: paragraphs, **bold**, lists (`-` and `1.`), headings. */
+function MarkdownBody({ source }: { source: string | null }) {
+  if (!source || !source.trim()) {
+    return (
+      <div className="prose prose-base max-w-none prose-gray prose-p:text-gray-800 prose-p:leading-relaxed">
+        <p>
+          这是一条来自 {`bunnysave.com`} 的精选优惠。点击上方"点击前往商家"按钮查看完整优惠信息。
+        </p>
+      </div>
+    );
+  }
+
+  const blocks: React.ReactElement[] = [];
+  const lines = source.split(/\r?\n/);
+  let i = 0;
+  let key = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      i++;
+      continue;
+    }
+
+    // Heading
+    if (/^#{1,3}\s+/.test(trimmed)) {
+      const level = (trimmed.match(/^#+/) ?? [""])[0].length;
+      const text = trimmed.replace(/^#+\s+/, "");
+      const Tag = (`h${Math.min(level + 1, 6)}`) as "h2" | "h3" | "h4" | "h5" | "h6";
+      blocks.push(
+        <Tag key={key++} className={level === 1 ? "text-xl font-bold mt-4 mb-2" : "text-base font-bold mt-3 mb-1"}>
+          {renderInline(text)}
+        </Tag>,
+      );
+      i++;
+      continue;
+    }
+
+    // Unordered list
+    if (/^[-*]\s+/.test(trimmed)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*[-*]\s+/, ""));
+        i++;
+      }
+      blocks.push(
+        <ul key={key++} className="list-disc pl-6 my-2 space-y-0.5 text-gray-800">
+          {items.map((it, idx) => (
+            <li key={idx}>{renderInline(it)}</li>
+          ))}
+        </ul>,
+      );
+      continue;
+    }
+
+    // Ordered list
+    if (/^\d+\.\s+/.test(trimmed)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*\d+\.\s+/, ""));
+        i++;
+      }
+      blocks.push(
+        <ol key={key++} className="list-decimal pl-6 my-2 space-y-0.5 text-gray-800">
+          {items.map((it, idx) => (
+            <li key={idx}>{renderInline(it)}</li>
+          ))}
+        </ol>,
+      );
+      continue;
+    }
+
+    // Paragraph (collect until blank or block start)
+    const para: string[] = [];
+    while (i < lines.length) {
+      const cur = lines[i].trim();
+      if (!cur || /^#{1,3}\s+/.test(cur) || /^[-*]\s+/.test(cur) || /^\d+\.\s+/.test(cur)) {
+        break;
+      }
+      para.push(cur);
+      i++;
+    }
+    if (para.length > 0) {
+      blocks.push(
+        <p key={key++} className="text-gray-800 leading-relaxed my-2">
+          {renderInline(para.join(" "))}
+        </p>,
+      );
+    }
+  }
+
+  return <div className="prose prose-base max-w-none prose-gray">{blocks}</div>;
+}
+
+/** Render `**bold**`, `*italic*`, and `inline code` as React nodes. */
+function renderInline(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let key = 0;
+  while ((m = regex.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const tok = m[0];
+    if (tok.startsWith("**")) {
+      parts.push(<strong key={key++} className="text-bunny-ink font-semibold">{tok.slice(2, -2)}</strong>);
+    } else if (tok.startsWith("`")) {
+      parts.push(<code key={key++} className="rounded bg-gray-100 px-1 text-sm">{tok.slice(1, -1)}</code>);
+    } else {
+      parts.push(<em key={key++}>{tok.slice(1, -1)}</em>);
+    }
+    last = m.index + tok.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
+function formatDate(epoch: number): string {
+  if (!epoch) return "";
+  const d = new Date(epoch * 1000);
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+function ChevronRight() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="inline h-4 w-4 text-gray-300"
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
+function ShareIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" />
+      <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />
+    </svg>
+  );
+}
+
+function BookmarkIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+    </svg>
   );
 }
 

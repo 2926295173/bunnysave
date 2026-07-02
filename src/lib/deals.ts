@@ -153,6 +153,56 @@ export async function getDeal(id: string): Promise<Deal | null> {
   };
 }
 
+export type DealFull = Deal & {
+  brandName: string | null;
+  brandId: string | null;
+  price: string | null;
+  discount: string | null;
+  description: string | null;
+  isFree: boolean;
+  isHot: boolean;
+  heat: number;
+  publishedAt: number;
+};
+
+/** Full record used by the deal detail page (includes brand name + price/desc). */
+export async function getDealFull(id: string): Promise<DealFull | null> {
+  await db();
+  const row = await fetchOne<DealRow>(
+    "SELECT id, title, brand_id, cover, cta, source, price, discount, description, is_free, is_hot, heat, published_at FROM deals WHERE id = $1 LIMIT 1",
+    [id],
+  );
+  if (!row) return null;
+  let brand: BrandRow | null = null;
+  if (row.brand_id) {
+    brand = await fetchOne<BrandRow>(
+      "SELECT id, name, logo, deal_count, sort_order FROM brands WHERE id = $1 LIMIT 1",
+      [row.brand_id],
+    );
+  }
+  const publishedAt =
+    typeof row.published_at === "string"
+      ? Number(row.published_at)
+      : row.published_at;
+  return {
+    id: row.id,
+    title: row.title,
+    brandLogo: brand?.logo ?? null,
+    cover: row.cover,
+    cta: row.cta,
+    source: row.source,
+    brandName: brand?.name ?? null,
+    brandId: brand?.id ?? null,
+    price: row.price,
+    discount: row.discount,
+    description: row.description,
+    isFree: row.is_free,
+    isHot: row.is_hot,
+    heat: row.heat,
+    publishedAt,
+  };
+}
+
 export async function getBrands(): Promise<Brand[]> {
   await db();
   const rows = await fetchAll<BrandRow>(

@@ -9,9 +9,10 @@ import { localImageFor } from "@/lib/image-path";
 type Props = {
   latestDeals: Deal[];
   brands: Brand[];
+  showFollowUs?: boolean;
 };
 
-export function Sidebar({ latestDeals, brands }: Props) {
+export function Sidebar({ latestDeals, brands, showFollowUs = false }: Props) {
   const top5 = latestDeals.slice(0, 5);
   const topBrands = brands.slice(0, 6);
 
@@ -19,7 +20,8 @@ export function Sidebar({ latestDeals, brands }: Props) {
     <aside className="hidden lg:block w-80 flex-shrink-0 space-y-6">
       <NewsletterWidget />
       <LatestDealsWidget deals={top5} />
-      <TopBrandsWidget brands={topBrands} />
+      {showFollowUs ? <FollowUsWidget /> : null}
+      {showFollowUs ? null : <TopBrandsWidget brands={topBrands} />}
     </aside>
   );
 }
@@ -265,6 +267,61 @@ function ChevronRightIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
+function FollowUsWidget() {
+  return (
+    <WidgetShell
+      icon={<UsersIcon className="h-4 w-4" />}
+      title="关注我们"
+    >
+      <div className="p-4">
+        <div className="grid grid-cols-2 gap-3">
+          <a
+            className="group flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-gray-50 transition-all duration-200 hover:bg-black hover:text-white"
+            href="https://x.com/DealSelected"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            <span className="transition-transform duration-200 group-hover:scale-110">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+            </span>
+            <span className="text-xs font-medium text-gray-600 group-hover:text-inherit transition-colors">
+              X (Twitter)
+            </span>
+          </a>
+          <a
+            className="group flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-gray-50 transition-all duration-200 hover:bg-[#1877F2] hover:text-white"
+            href="https://www.facebook.com/people/Deal-Selected/61585141210415/"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            <span className="transition-transform duration-200 group-hover:scale-110">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+              </svg>
+            </span>
+            <span className="text-xs font-medium text-gray-600 group-hover:text-inherit transition-colors">
+              Facebook
+            </span>
+          </a>
+        </div>
+      </div>
+    </WidgetShell>
+  );
+}
+
+function UsersIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   );
 }
