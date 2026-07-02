@@ -20,8 +20,8 @@ export function Sidebar({ latestDeals, brands, showFollowUs = false }: Props) {
     <aside className="hidden lg:block w-80 flex-shrink-0 space-y-6">
       <NewsletterWidget />
       <LatestDealsWidget deals={top5} />
+      <TopBrandsWidget brands={topBrands} />
       {showFollowUs ? <FollowUsWidget /> : null}
-      {showFollowUs ? null : <TopBrandsWidget brands={topBrands} />}
     </aside>
   );
 }

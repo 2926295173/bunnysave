@@ -32,7 +32,7 @@ export default async function HomePage({
             </div>
           </div>
         </div>
-        <Sidebar latestDeals={deals} brands={brands} />
+        <Sidebar latestDeals={deals} brands={brands} showFollowUs />
       </div>
     </div>
   );
