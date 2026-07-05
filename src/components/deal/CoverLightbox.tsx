@@ -92,12 +92,10 @@ export function CoverLightbox({
           <div
             onClick={(e) => e.stopPropagation()}
             className={
-              "relative max-h-full max-w-full overflow-auto " +
+              "relative w-full h-full bg-white rounded-lg overflow-auto " +
               (zoomed ? "cursor-zoom-out" : "cursor-zoom-in")
             }
           >
-            {/* The unzoomed image fits the viewport; the zoomed version
-                shows at its natural intrinsic size, scrollable. */}
             <Image
               src={src}
               alt={alt}
