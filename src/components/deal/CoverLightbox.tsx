@@ -91,25 +91,30 @@ export function CoverLightbox({
           </button>
           <div
             onClick={(e) => e.stopPropagation()}
-            className={
-              "relative w-full h-full bg-white rounded-lg overflow-auto " +
-              (zoomed ? "cursor-zoom-out" : "cursor-zoom-in")
-            }
+            className="absolute inset-[20%] flex items-center justify-center"
           >
-            <Image
-              src={src}
-              alt={alt}
-              width={1200}
-              height={1200}
-              sizes="(max-width: 1200px) 100vw, 1200px"
+            <div
+              onClick={(e) => e.stopPropagation()}
               className={
-                "block " +
-                (zoomed
-                  ? "h-auto w-[1200px] max-w-none"
-                  : "max-h-[calc(100vh-3rem)] w-auto max-w-[calc(100vw-3rem)] object-contain")
+                "relative w-full h-full bg-white rounded-lg overflow-auto " +
+                (zoomed ? "cursor-zoom-out" : "cursor-zoom-in")
               }
-              priority
-            />
+            >
+              <Image
+                src={src}
+                alt={alt}
+                width={1200}
+                height={1200}
+                sizes="(max-width: 1200px) 100vw, 1200px"
+                className={
+                  "block " +
+                  (zoomed
+                    ? "h-auto w-[1200px] max-w-none"
+                    : "max-h-full w-auto max-w-full object-contain")
+                }
+                priority
+              />
+            </div>
           </div>
         </div>
       ) : null}
