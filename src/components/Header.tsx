@@ -214,6 +214,18 @@ function UserMenu({
               >
                 我的收藏
               </Link>
+              {session.user.role === "admin" ? (
+                <Link
+                  href="/admin"
+                  className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  onClick={() => setOpen(false)}
+                >
+                  <span>后台管理</span>
+                  <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                    admin
+                  </span>
+                </Link>
+              ) : null}
             </div>
             <div className="border-t border-gray-100 py-1">
               <button
