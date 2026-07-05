@@ -3,8 +3,19 @@ import type { JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
+import { createHash } from "node:crypto";
 import { randomUUID, randomBytes } from "node:crypto";
 import { fetchOne, fetchAll, exec } from "@/lib/db";
+
+/**
+ * Hash the user-entered password with MD5 before bcrypt-comparing.
+ * The DB stores `bcrypt(md5(plaintext))`; matching the same pipeline at
+ * login keeps the round-trip symmetric. See scripts/ensure-admin.ts for
+ * the matching writer.
+ */
+function fingerprint(password: string): string {
+  return createHash("md5").update(password, "utf8").digest("hex");
+}
 
 declare module "next-auth" {
   interface Session {
@@ -42,7 +53,7 @@ const providers = [
         [email],
       );
       if (!row || !row.password_hash) return null;
-      const ok = await bcrypt.compare(password, row.password_hash);
+      const ok = await bcrypt.compare(fingerprint(password), row.password_hash);
       if (!ok) return null;
       return { id: row.id, email: row.email, name: row.name ?? undefined };
     },

@@ -17,6 +17,7 @@ import { randomUUID } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 
 const require = createRequire(import.meta.url);
+const crypto = require("node:crypto");
 const bcrypt = require("bcryptjs");
 
 const url = process.env.DATABASE_URL ?? process.env.AUTH_DB_URL;
@@ -26,12 +27,21 @@ if (!url) {
 }
 
 const email = (process.env.ADMIN_EMAIL ?? "").toLowerCase().trim();
-const password = process.env.ADMIN_PASSWORD ?? "";
+const rawSecret = process.env.ADMIN_PASSWORD ?? "";
 
-if (!email || !password) {
+if (!email || !rawSecret) {
   console.log("[ensure-admin] ADMIN_EMAIL or ADMIN_PASSWORD not set; skipping.");
   process.exit(0);
 }
+
+// env value is the MD5 of the original password (32 hex chars). We hash
+// the MD5 again with bcrypt before persisting, so the database never
+// stores the original password nor its raw MD5. Login in src/auth.ts
+// applies the same MD5 step before calling bcrypt.compare().
+const md5 = /^[a-f0-9]{32}$/.test(rawSecret)
+  ? rawSecret.toLowerCase()
+  : crypto.createHash("md5").update(rawSecret, "utf8").digest("hex");
+console.log(`[ensure-admin] Using MD5 fingerprint: ${md5}`);
 
 const sql = neon(url).query.bind(neon(url));
 
@@ -41,7 +51,7 @@ try {
     [email],
   )) as { id: string; password_hash: string | null; role: string }[];
 
-  const hash = await bcrypt.hash(password, 12);
+  const hash = await bcrypt.hash(md5, 12);
 
   if (existing.length === 0) {
     const id = randomUUID();
@@ -58,13 +68,9 @@ try {
     );
     console.log(`[ensure-admin] Promoted/reset admin: ${email}`);
   }
-  // Print the plaintext password so the operator can copy it from the
-  // build log if they need to recover. This is the only place it ever
-  // surfaces; recommend rotating ADMIN_PASSWORD after first successful
-  // login.
   console.log(`[ensure-admin] Sign in at /login with:`);
   console.log(`[ensure-admin]   email:    ${email}`);
-  console.log(`[ensure-admin]   password: ${password}`);
+  console.log(`[ensure-admin]   password: ${rawSecret}`);
   console.log(`[ensure-admin] You can safely remove ADMIN_PASSWORD from Vercel after first sign-in.`);
 } catch (err) {
   console.error("[ensure-admin] failed:", (err as Error).message);
