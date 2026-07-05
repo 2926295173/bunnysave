@@ -118,6 +118,12 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
 
                   <h1 className="text-xl lg:text-2xl font-bold text-bunny-ink mb-2">{deal.title}</h1>
 
+                  {deal.price ? (
+                    <p className="text-4xl font-extrabold text-gray-900 tracking-tight mb-3">
+                      {deal.price}
+                    </p>
+                  ) : null}
+
                   {subline ? (
                     <p className="text-base font-semibold mb-4" style={{ color: "#F97316" }}>
                       {subline}
