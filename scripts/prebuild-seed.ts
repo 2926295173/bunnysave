@@ -54,3 +54,21 @@ if (result.status !== 0) {
 }
 
 console.log("[prebuild] seed completed.");
+
+// Always run ensure-admin after seed; it's idempotent and exits cleanly
+// when ADMIN_EMAIL/ADMIN_PASSWORD aren't configured.
+const admin = spawnSync(
+  process.execPath,
+  [
+    "--experimental-strip-types",
+    "--no-warnings",
+    ...envFile,
+    "scripts/ensure-admin.ts",
+  ],
+  { stdio: "inherit" },
+);
+if (admin.status !== 0) {
+  console.warn(`[prebuild] ensure-admin exited with status ${admin.status}`);
+} else {
+  console.log("[prebuild] ensure-admin completed.");
+}
