@@ -6,6 +6,7 @@ import { getDealFull, getDeals, getBrands, localImageFor } from "@/lib/deals";
 import { DealCard } from "@/components/DealCard";
 import { Sidebar } from "@/components/Sidebar";
 import { CoverLightbox } from "@/components/deal/CoverLightbox";
+import { DealTabs } from "@/components/deal/DealTabs";
 
 type Params = { id: string };
 
@@ -171,42 +172,20 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
               </div>
             </div>
 
-            {/* Tabs (visual only — content is below) */}
+            {/* Tabs */}
             <div className="border-t border-gray-100">
-              <div className="border-b border-gray-100">
-                <div className="flex">
-                  <button
-                    type="button"
-                    className="px-6 py-3 text-sm font-medium transition-colors text-[#F97316] border-b-2 border-[#F97316]"
-                  >
-                    优惠详情
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    className="px-6 py-3 text-sm font-medium transition-colors text-gray-400 cursor-not-allowed"
-                  >
-                    产品信息
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6">
-                <MarkdownBody source={deal.description} />
-                <div className="mt-6 pt-6 border-t border-gray-100">
-                  <h3 className="font-semibold text-bunny-ink mb-3">注意：</h3>
-                  <ul className="text-sm text-gray-600 space-y-2">
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-400">•</span>
-                      <span>价格和库存可能随时变动，恕不另行通知</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-400">•</span>
-                      <span>请访问零售商网站获取最新价格</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
+              <DealTabs
+                description={deal.description}
+                info={{
+                  brand: deal.brandName,
+                  source: deal.source,
+                  price: deal.price,
+                  discount: deal.discount,
+                  isFree: deal.isFree,
+                  isHot: deal.isHot,
+                  cta: deal.cta,
+                }}
+              />
             </div>
           </div>
 
