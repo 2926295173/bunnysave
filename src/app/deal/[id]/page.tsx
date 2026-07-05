@@ -5,6 +5,7 @@ import Image from "next/image";
 import { getDealFull, getDeals, getBrands, localImageFor } from "@/lib/deals";
 import { DealCard } from "@/components/DealCard";
 import { Sidebar } from "@/components/Sidebar";
+import { CoverLightbox } from "@/components/deal/CoverLightbox";
 
 type Params = { id: string };
 
@@ -81,21 +82,11 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
               <div className="flex flex-col lg:flex-row gap-6">
                 {/* Square image (288px on lg) */}
                 <div className="lg:w-72 flex-shrink-0">
-                  <div className="group relative aspect-square overflow-hidden rounded-lg bg-gray-50 border border-gray-100">
-                    <Image
-                      src={localImageFor(deal.cover, "deals")}
-                      alt={deal.title}
-                      fill
-                      priority
-                      sizes="(max-width: 1024px) 100vw, 288px"
-                      className="object-contain p-4 transition-transform group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-full">
-                        Click to enlarge
-                      </span>
-                    </div>
-                  </div>
+                  <CoverLightbox
+                    src={localImageFor(deal.cover, "deals")}
+                    alt={deal.title}
+                    sizes="(max-width: 1024px) 100vw, 288px"
+                  />
                 </div>
 
                 {/* Title + CTA */}
