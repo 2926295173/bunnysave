@@ -71,6 +71,7 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
   const dealDate = formatDate(deal.publishedAt);
   const validThroughSec = deal.validThrough;
   const validThroughMs = validThroughSec !== null ? validThroughSec * 1000 : null;
+  // eslint-disable-next-line react-hooks/purity -- RSC page re-renders per request
   const isExpired = validThroughMs !== null && validThroughMs < Date.now();
   const validThroughDate = validThroughSec !== null ? formatFullDate(validThroughSec) : null;
   const offerJsonLdUrl = `/deal/${deal.id}`;

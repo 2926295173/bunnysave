@@ -138,7 +138,7 @@ function MarkdownBody({ source }: { source: string | null }) {
     return (
       <div className="prose prose-base max-w-none prose-gray prose-p:text-gray-800 prose-p:leading-relaxed">
         <p>
-          这是一条来自 {`bunnysave.com`} 的精选优惠。点击上方"点击前往商家"按钮查看完整优惠信息。
+          这是一条来自 {`bunnysave.com`} 的精选优惠。点击上方&ldquo;点击前往商家&rdquo;按钮查看完整优惠信息。
         </p>
       </div>
     );
