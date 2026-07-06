@@ -19,10 +19,12 @@ export function CoverLightbox({
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        setZoomed(false);
+      }
     }
     document.addEventListener("keydown", onKey);
-    // Lock body scroll while modal is open
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -91,26 +93,33 @@ export function CoverLightbox({
           </button>
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute inset-[20%] flex items-center justify-center"
+            className="relative flex items-center justify-center max-h-full max-w-full"
           >
+            {/* Fitted container — preserves the image's native aspect ratio,
+                centered in the viewport. Clicking the image toggles zoom. */}
             <div
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                setZoomed((z) => !z);
+              }}
               className={
-                "relative w-full h-full bg-white rounded-lg overflow-auto " +
-                (zoomed ? "cursor-zoom-out" : "cursor-zoom-in")
+                "relative max-h-[85vh] max-w-[90vw] overflow-auto rounded-lg bg-white shadow-2xl " +
+                (zoomed
+                  ? "cursor-zoom-out"
+                  : "cursor-zoom-in")
               }
             >
               <Image
                 src={src}
                 alt={alt}
-                width={1200}
-                height={1200}
-                sizes="(max-width: 1200px) 100vw, 1200px"
+                width={1600}
+                height={1600}
+                sizes="(max-width: 1600px) 100vw, 1600px"
                 className={
-                  "block " +
+                  "block h-auto w-auto " +
                   (zoomed
-                    ? "h-auto w-[1200px] max-w-none"
-                    : "max-h-full w-auto max-w-full object-contain")
+                    ? "max-w-none"
+                    : "max-h-[85vh] max-w-[90vw] object-contain")
                 }
                 priority
               />
