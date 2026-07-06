@@ -90,11 +90,10 @@ export function Header() {
             </span>
           </Link>
 
-          <div className="flex-1 max-w-md hidden md:block">
-            <SearchBar />
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+            <div className="hidden md:block">
+              <SearchBar />
+            </div>
             <Link
               href="/submit"
               className="hidden sm:flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white rounded-full transition-all duration-200 hover:opacity-90 active:scale-[0.98] gradient-brand"
