@@ -158,7 +158,7 @@ function LatestDealsWidget({ deals }: { deals: Deal[] }) {
               <div className="flex items-baseline gap-2 mt-1.5">
                 <span className="text-sm font-bold gradient-brand-text">{extractPrice(d)}</span>
               </div>
-              <span className="text-xs text-gray-400 mt-0.5 block">{d.source}</span>
+              <span className="text-xs text-gray-400 mt-0.5 block">{d.brandName ?? d.source}</span>
             </div>
           </Link>
         ))}
@@ -214,6 +214,7 @@ function TopBrandsWidget({ brands }: { brands: Brand[] }) {
 }
 
 function extractPrice(deal: Deal): string {
+  if (deal.price) return deal.price;
   const m = deal.title.match(/\$[\d.]+/);
   return m ? m[0] : "查看详情";
 }

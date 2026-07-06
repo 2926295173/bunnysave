@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Plus_Jakarta_Sans, Noto_Sans_SC } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
@@ -106,7 +107,9 @@ gtag('config', '${GA_ID}', { transport_type: 'beacon' });`,
       <body className="font-sans antialiased min-h-screen flex flex-col">
         <SessionProvider>
           <SiteConfigProvider>
-            <Header />
+            <Suspense fallback={null}>
+              <Header />
+            </Suspense>
             <main className="flex-1 pb-20 md:pb-0">{children}</main>
             <Footer />
           </SiteConfigProvider>

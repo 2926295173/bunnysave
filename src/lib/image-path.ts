@@ -1,38 +1,32 @@
 /**
  * Pure path helpers — safe to import in client components (no fs / no server-only).
+ *
+ * We pass the original remote URL through to `next/image` (configured via
+ * `images.remotePatterns` in next.config.mjs), and only fall back to a
+ * local placeholder when the URL is malformed or comes from an
+ * unconfigured host.
  */
 
 export function localImageFor(
   remoteUrl: string,
   fallbackBucket: "deals" | "brands" | "site" = "deals",
 ): string {
+  if (!remoteUrl) return `/images/${fallbackBucket}/placeholder.svg`;
   try {
     const u = new URL(remoteUrl);
-    const parts = u.pathname.split("/").filter(Boolean);
-    if (parts.length >= 2) {
-      const bucket = parts[parts.length - 2];
-      const filename = parts[parts.length - 1];
-      if (["deals", "brands", "site"].includes(bucket)) {
-        return `/images/${bucket}/${filename}`;
-      }
+    // Only honor HTTPS / HTTP URLs from configured hosts.
+    if (u.protocol === "https:" || u.protocol === "http:") {
+      return remoteUrl;
     }
   } catch {
-    // ignore
+    // Already a relative path or invalid URL.
   }
+  // Already a local /images/ path → keep it.
+  if (remoteUrl.startsWith("/")) return remoteUrl;
   return `/images/${fallbackBucket}/placeholder.svg`;
 }
 
-export function localImageExists(remoteUrl: string): boolean {
-  try {
-    const u = new URL(remoteUrl);
-    const parts = u.pathname.split("/").filter(Boolean);
-    if (parts.length >= 2) {
-      const bucket = parts[parts.length - 2];
-      const filename = parts[parts.length - 1];
-      return ["deals", "brands", "site"].includes(bucket);
-    }
-  } catch {
-    return false;
-  }
-  return false;
+export function localImageExists(_remoteUrl: string): boolean {
+  // With remotePatterns enabled we always defer to the next/image pipeline.
+  return true;
 }

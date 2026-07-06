@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { getDealFull, getDeals, getBrands, localImageFor } from "@/lib/deals";
+import { fetchAll } from "@/lib/db";
 import { DealCard } from "@/components/DealCard";
 import { Sidebar } from "@/components/Sidebar";
 import { CoverLightbox } from "@/components/deal/CoverLightbox";
@@ -40,15 +40,28 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
   const deal = await getDealFull(id);
   if (!deal) notFound();
 
-  const [allDeals, brands] = await Promise.all([
+  const [allDeals, brands, cats] = await Promise.all([
     getDeals(),
     getBrands(),
+    fetchAll<{ slug: string }>(
+      "SELECT category_slug AS slug FROM deal_categories WHERE deal_id = $1",
+      [id],
+    ),
   ]);
   const related = allDeals.filter((d) => d.id !== deal.id).slice(0, 5);
 
-  const ctaHref = deal.cta ?? "https://www.bunnysave.com/";
-  const discountBadge = deal.discount?.match(/(\d+)\s*%/)?.[0] ?? null;
-  const subline = deal.discount?.replace(/-/, "").replace(/\d+\s*%/, "").trim() || null;
+  const ctaHref = deal.cta ?? `https://www.google.com/search?q=${encodeURIComponent(deal.brandName ?? deal.title)}`;
+  const parentCat = pickParent(cats.map((c) => c.slug));
+  const parentHref = parentCat ? `/category/${parentCat}` : "/";
+  const parentLabel = parentCat ? parentLabelFor(parentCat) : "优惠";
+  const subCats = cats.filter((c) => c.slug !== parentCat).map((c) => c.slug);
+  const subLabel = subCats[0] ? subLabelFor(subCats[0]) : null;
+
+  const isAmazon = (deal.brandName ?? "").toLowerCase() === "amazon";
+  const discountPct = deal.discount?.match(/(\d+)\s*%/)?.[0] ?? null;
+  const priceNum = parseMoney(deal.price);
+  const origNum = parseMoney(deal.originalPrice);
+  const savings = priceNum !== null && origNum !== null && origNum > priceNum ? origNum - priceNum : null;
   const dealDate = formatDate(deal.publishedAt);
 
   return (
@@ -61,18 +74,21 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
               <li>
                 <Link href="/" className="hover:text-bunny-accent whitespace-nowrap">首页</Link>
               </li>
-              <li>
+              <li className="flex items-center">
                 <ChevronRight />
-                <Link
-                  href={`/category/daily-deals`}
-                  className="ml-2 hover:text-bunny-accent whitespace-nowrap"
-                >
-                  每日优惠
+                <Link href={parentHref} className="ml-2 hover:text-bunny-accent whitespace-nowrap">
+                  {parentLabel}
                 </Link>
               </li>
-              <li className="min-w-0">
+              {subLabel ? (
+                <li className="flex items-center min-w-0">
+                  <ChevronRight />
+                  <span className="ml-2 text-bunny-ink truncate">{subLabel}</span>
+                </li>
+              ) : null}
+              <li className="flex items-center min-w-0">
                 <ChevronRight />
-                <span className="ml-2 text-bunny-ink truncate">{deal.title}</span>
+                <span className="ml-2 text-bunny-ink truncate font-medium">{deal.title}</span>
               </li>
             </ol>
           </nav>
@@ -81,7 +97,7 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
           <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
             <div className="p-6">
               <div className="flex flex-col lg:flex-row gap-6">
-                {/* Square image (288px on lg) */}
+                {/* Square image */}
                 <div className="lg:w-72 flex-shrink-0">
                   <CoverLightbox
                     src={localImageFor(deal.cover, "deals")}
@@ -108,31 +124,40 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
                     <span>{dealDate}</span>
                   </div>
 
-                  <h1 className="text-xl lg:text-2xl font-bold text-bunny-ink mb-2">{deal.title}</h1>
+                  <h1 className="text-xl lg:text-2xl font-bold text-bunny-ink mb-3 leading-snug">
+                    {deal.title}
+                  </h1>
 
-                  {deal.price ? (
-                    <p className="text-4xl font-extrabold text-gray-900 tracking-tight mb-3">
-                      {deal.price}
+                  {/* Price block — mimics bunnysave.com layout */}
+                  <div className="mb-4 flex flex-wrap items-baseline gap-3">
+                    {deal.price ? (
+                      <span className="text-4xl font-extrabold text-gray-900 tracking-tight">
+                        {deal.price}
+                      </span>
+                    ) : null}
+                    {deal.originalPrice ? (
+                      <span className="text-lg text-gray-400 line-through">{deal.originalPrice}</span>
+                    ) : null}
+                    {discountPct ? (
+                      <span
+                        className="inline-flex items-center px-2.5 py-1 text-white text-sm font-semibold rounded-full"
+                        style={{ background: "linear-gradient(135deg, #F97316, #EA580C)" }}
+                      >
+                        {discountPct}
+                      </span>
+                    ) : null}
+                    {savings !== null ? (
+                      <span className="inline-flex items-center px-2.5 py-1 text-emerald-700 text-sm font-semibold bg-emerald-50 rounded-full">
+                        您节省了 ${savings.toFixed(2).replace(/\.00$/, "")}!
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {/* Subtitle = discount description */}
+                  {deal.discount && !/^\s*-?\d+\s*%\s*$/.test(deal.discount) ? (
+                    <p className="text-base font-semibold mb-5" style={{ color: "#F97316" }}>
+                      {deal.discount}
                     </p>
-                  ) : null}
-
-                  {subline ? (
-                    <p className="text-base font-semibold mb-4" style={{ color: "#F97316" }}>
-                      {subline}
-                    </p>
-                  ) : null}
-
-                  {discountBadge ? (
-                    <div className="mb-5">
-                      <div className="flex flex-wrap items-baseline gap-3">
-                        <span
-                          className="inline-flex items-center px-3 py-1 text-white text-sm font-semibold rounded-full"
-                          style={{ background: "linear-gradient(135deg, #F97316, #EA580C)" }}
-                        >
-                          -{discountBadge}
-                        </span>
-                      </div>
-                    </div>
                   ) : null}
 
                   <div className="flex items-center gap-2 sm:gap-3">
@@ -146,7 +171,7 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
                         className="w-full text-sm sm:text-base py-4 text-white font-semibold rounded-2xl transition-all duration-200 hover:opacity-90 active:scale-[0.98] truncate"
                         style={{ background: "linear-gradient(135deg, #F97316, #EA580C)" }}
                       >
-                        点击前往{deal.brandName ? ` ${deal.brandName}` : "商家"}!
+                        点击前往 {deal.brandName ?? "商家"}!
                       </button>
                     </a>
                     <div className="flex items-center gap-2">
@@ -168,6 +193,28 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
                       </button>
                     </div>
                   </div>
+
+                  {/* Amazon Prime hint */}
+                  {isAmazon ? (
+                    <div className="mt-5 p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 flex items-start gap-3">
+                      <span className="text-2xl" aria-hidden="true">📦</span>
+                      <div className="text-sm text-gray-700">
+                        <p className="font-semibold text-bunny-ink">Amazon 购物提示</p>
+                        <p className="mt-1">
+                          还没有 Prime 会员？
+                          <a
+                            href="https://amzn.to/4p9c8xk"
+                            target="_blank"
+                            rel="noopener noreferrer sponsored"
+                            className="ml-1 font-semibold text-[#F97316] hover:underline"
+                          >
+                            点击这里
+                          </a>
+                          免费试用 30 天，随时可取消。Prime 会员享免费快递、流媒体等多项权益。
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -189,7 +236,7 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
             </div>
           </div>
 
-          {/* Related deals — single column, horizontal cards */}
+          {/* Related deals */}
           <section aria-labelledby="related-heading" className="mt-8 md:mt-12">
             <div className="flex items-center gap-3 mb-6">
               <h2 id="related-heading" className="text-xl md:text-2xl font-bold text-bunny-ink">
@@ -216,122 +263,43 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
   );
 }
 
-/** Minimal markdown: paragraphs, **bold**, lists (`-` and `1.`), headings. */
-function MarkdownBody({ source }: { source: string | null }) {
-  if (!source || !source.trim()) {
-    return (
-      <div className="prose prose-base max-w-none prose-gray prose-p:text-gray-800 prose-p:leading-relaxed">
-        <p>
-          这是一条来自 {`bunnysave.com`} 的精选优惠。点击上方"点击前往商家"按钮查看完整优惠信息。
-        </p>
-      </div>
-    );
-  }
-
-  const blocks: React.ReactElement[] = [];
-  const lines = source.split(/\r?\n/);
-  let i = 0;
-  let key = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    const trimmed = line.trim();
-
-    if (!trimmed) {
-      i++;
-      continue;
-    }
-
-    // Heading
-    if (/^#{1,3}\s+/.test(trimmed)) {
-      const level = (trimmed.match(/^#+/) ?? [""])[0].length;
-      const text = trimmed.replace(/^#+\s+/, "");
-      const Tag = (`h${Math.min(level + 1, 6)}`) as "h2" | "h3" | "h4" | "h5" | "h6";
-      blocks.push(
-        <Tag key={key++} className={level === 1 ? "text-xl font-bold mt-4 mb-2" : "text-base font-bold mt-3 mb-1"}>
-          {renderInline(text)}
-        </Tag>,
-      );
-      i++;
-      continue;
-    }
-
-    // Unordered list
-    if (/^[-*]\s+/.test(trimmed)) {
-      const items: string[] = [];
-      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
-        items.push(lines[i].replace(/^\s*[-*]\s+/, ""));
-        i++;
-      }
-      blocks.push(
-        <ul key={key++} className="list-disc pl-6 my-2 space-y-0.5 text-gray-800">
-          {items.map((it, idx) => (
-            <li key={idx}>{renderInline(it)}</li>
-          ))}
-        </ul>,
-      );
-      continue;
-    }
-
-    // Ordered list
-    if (/^\d+\.\s+/.test(trimmed)) {
-      const items: string[] = [];
-      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
-        items.push(lines[i].replace(/^\s*\d+\.\s+/, ""));
-        i++;
-      }
-      blocks.push(
-        <ol key={key++} className="list-decimal pl-6 my-2 space-y-0.5 text-gray-800">
-          {items.map((it, idx) => (
-            <li key={idx}>{renderInline(it)}</li>
-          ))}
-        </ol>,
-      );
-      continue;
-    }
-
-    // Paragraph (collect until blank or block start)
-    const para: string[] = [];
-    while (i < lines.length) {
-      const cur = lines[i].trim();
-      if (!cur || /^#{1,3}\s+/.test(cur) || /^[-*]\s+/.test(cur) || /^\d+\.\s+/.test(cur)) {
-        break;
-      }
-      para.push(cur);
-      i++;
-    }
-    if (para.length > 0) {
-      blocks.push(
-        <p key={key++} className="text-gray-800 leading-relaxed my-2">
-          {renderInline(para.join(" "))}
-        </p>,
-      );
-    }
-  }
-
-  return <div className="prose prose-base max-w-none prose-gray">{blocks}</div>;
+function pickParent(slugs: string[]): string | null {
+  // Prefer the known parent slugs.
+  const parents = ["daily-deals", "freebies", "financial", "other"];
+  for (const p of parents) if (slugs.includes(p)) return p;
+  return slugs[0] ?? null;
 }
 
-/** Render `**bold**`, `*italic*`, and `inline code` as React nodes. */
-function renderInline(text: string): React.ReactNode {
-  const parts: React.ReactNode[] = [];
-  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  let key = 0;
-  while ((m = regex.exec(text)) !== null) {
-    if (m.index > last) parts.push(text.slice(last, m.index));
-    const tok = m[0];
-    if (tok.startsWith("**")) {
-      parts.push(<strong key={key++} className="text-bunny-ink font-semibold">{tok.slice(2, -2)}</strong>);
-    } else if (tok.startsWith("`")) {
-      parts.push(<code key={key++} className="rounded bg-gray-100 px-1 text-sm">{tok.slice(1, -1)}</code>);
-    } else {
-      parts.push(<em key={key++}>{tok.slice(1, -1)}</em>);
-    }
-    last = m.index + tok.length;
+function parentLabelFor(slug: string): string {
+  switch (slug) {
+    case "daily-deals": return "每日优惠";
+    case "freebies": return "免费薅羊毛";
+    case "financial": return "金融理财";
+    case "other": return "其他";
+    default: return slug;
   }
-  if (last < text.length) parts.push(text.slice(last));
-  return parts;
+}
+
+function subLabelFor(slug: string): string {
+  switch (slug) {
+    case "electronics": return "电子产品";
+    case "household": return "家居";
+    case "fashion": return "服饰";
+    case "beauty": return "美妆";
+    case "food-grocery": return "美食杂货";
+    case "travel": return "旅行";
+    case "coupons": return "优惠券";
+    case "credit-cards": return "信用卡";
+    case "banks": return "银行";
+    case "class-action-settlement": return "集体诉讼";
+    default: return slug;
+  }
+}
+
+function parseMoney(s: string | null | undefined): number | null {
+  if (!s) return null;
+  const m = s.replace(/,/g, "").match(/\$?(\d+(?:\.\d+)?)/);
+  return m ? Number(m[1]) : null;
 }
 
 function formatDate(epoch: number): string {
@@ -400,5 +368,3 @@ function BookmarkIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-
-export const dynamic = "force-dynamic";

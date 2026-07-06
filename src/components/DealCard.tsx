@@ -51,7 +51,10 @@ export function DealCard({
         <div className="relative w-28 h-28 md:w-32 md:h-32 flex-shrink-0 rounded-xl overflow-hidden bg-gray-50">
           {meta.badge ? (
             <div
-              className="absolute top-2 left-2 z-10 px-3 py-1 text-xs font-bold rounded-full text-white gradient-brand"
+              className={
+                "absolute top-2 left-2 z-10 px-2.5 py-1 text-[11px] md:text-xs font-bold rounded-md text-white shadow-md " +
+                (meta.badgeKind === "free" ? "bg-emerald-500" : "gradient-brand")
+              }
             >
               {meta.badge}
             </div>
@@ -74,12 +77,12 @@ export function DealCard({
               {meta.brandLabel}
             </span>
             <span className="text-gray-400">{meta.time}</span>
-            {meta.heat > 0 && (
+            {meta.heat > 0 ? (
               <span className="flex items-center gap-1 text-orange-400">
                 <FlameIcon className="h-3 w-3" />
                 {meta.heat}
               </span>
-            )}
+            ) : null}
           </div>
 
           {/* title */}
@@ -87,13 +90,25 @@ export function DealCard({
             {deal.title}
           </h3>
 
-          {/* discount + description + CTA */}
+          {/* price + savings + CTA */}
           <div className="flex items-end gap-4">
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className="text-base md:text-lg font-bold gradient-brand-text">
-                  {meta.priceLine}
-                </span>
+              <div className="flex flex-wrap items-baseline gap-2 mb-1">
+                {meta.price ? (
+                  <span className="text-base md:text-lg font-bold gradient-brand-text">
+                    {meta.price}
+                  </span>
+                ) : null}
+                {meta.originalPrice ? (
+                  <span className="text-xs md:text-sm text-gray-400 line-through">
+                    {meta.originalPrice}
+                  </span>
+                ) : null}
+                {meta.savingsLabel ? (
+                  <span className="text-[11px] md:text-xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    {meta.savingsLabel}
+                  </span>
+                ) : null}
               </div>
               <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
                 {meta.description}
@@ -134,7 +149,12 @@ function CompactDealCard({
     >
       <div className="relative aspect-[4/3] w-full bg-gray-50">
         {meta.badge ? (
-          <div className="absolute top-2 left-2 z-10 px-2.5 py-0.5 text-[11px] font-bold rounded-full text-white gradient-brand">
+          <div
+            className={
+              "absolute top-2 left-2 z-10 px-2.5 py-0.5 text-[11px] font-bold rounded text-white shadow-md " +
+              (meta.badgeKind === "free" ? "bg-emerald-500" : "gradient-brand")
+            }
+          >
             {meta.badge}
           </div>
         ) : null}
@@ -157,9 +177,14 @@ function CompactDealCard({
         <h3 className="text-sm font-bold text-gray-800 line-clamp-2 leading-snug group-hover:text-gray-600 transition-colors">
           {deal.title}
         </h3>
-        <p className="text-sm font-bold gradient-brand-text mt-auto pt-1">
-          {meta.priceLine}
-        </p>
+        <div className="flex flex-wrap items-baseline gap-1.5 mt-auto pt-1">
+          {meta.price ? (
+            <span className="text-sm font-bold gradient-brand-text">{meta.price}</span>
+          ) : null}
+          {meta.originalPrice ? (
+            <span className="text-[11px] text-gray-400 line-through">{meta.originalPrice}</span>
+          ) : null}
+        </div>
       </div>
     </Link>
   );
@@ -171,50 +196,66 @@ type DealMeta = {
   time: string;
   heat: number;
   badge: string | null;
+  badgeKind: "free" | "discount" | null;
+  price: string | null;
+  originalPrice: string | null;
+  savingsLabel: string | null;
   priceLine: string;
   description: string;
 };
 
-/**
- * Derive display metadata from the raw scraped deal since the current JSON
- * shape is thin. This keeps the card component self-contained and easy to
- * evolve as the dataset grows.
- */
 function deriveMeta(deal: Deal, index: number): DealMeta {
-  // Pull the first notable discount/number from the title if no price field exists.
-  const m = deal.title.match(/[\d.]+/g);
-  const headlineNumber = m?.[0] ?? null;
+  const isFree = deal.isFree === true || /免费|白嫖|0\.00|^0$/.test(deal.price ?? "") ;
+  const discountText = deal.discount ?? null;
+  const badgeFromDiscount = discountText && /-?\d+\s*%/.test(discountText) ? discountText.match(/-?\d+\s*%/)?.[0] : null;
+  const badge = isFree ? "免费" : badgeFromDiscount ?? null;
+  const badgeKind: "free" | "discount" | null = isFree ? "free" : badge ? "discount" : null;
 
-  let badge: string | null = null;
-  if (/免费|0\.10|0\.|仅需|免费领/.test(deal.title)) badge = "免费";
-  else if (/-\d+\s*%|直降.*?\d+%|\d+%\s*off/i.test(deal.title)) {
-    const pm = deal.title.match(/(\d+)\s*%/);
-    badge = `-${pm?.[1] ?? "10"}%`;
+  const price = deal.price ?? null;
+  const originalPrice = deal.originalPrice ?? null;
+  let savingsLabel: string | null = null;
+  if (price && originalPrice) {
+    const p = parseMoney(price);
+    const o = parseMoney(originalPrice);
+    if (p !== null && o !== null && o > p) {
+      const saved = o - p;
+      savingsLabel = `省 ${formatMoney(saved)}`;
+    }
+  }
+  if (!savingsLabel && /立减[^，。！!]+/.test(deal.title)) {
+    savingsLabel = deal.title.match(/立减[^，。！!]+/)?.[0] ?? null;
   }
 
-  let priceLine = headlineNumber
-    ? `立省/折扣力度参考 ${headlineNumber}`
-    : "查看完整优惠";
-  if (/免费|0\.10|免费领/.test(deal.title)) priceLine = "完全免费 / 超低价入手";
-  else if (/立减/.test(deal.title)) priceLine = deal.title.match(/(立减[^，。！!]+)/)?.[1] ?? priceLine;
-
-  const description = `来自 ${deal.source} 的精选优惠，点击查看完整操作步骤、注意事项与有效期。数据自动更新。`;
+  // Subtitle / description shown beneath the price.
+  let description = deal.description
+    ? deal.description.replace(/[#*`>]/g, "").split(/\r?\n/).find((l) => l.trim()) ?? ""
+    : "";
+  if (!description) {
+    description = `来自 ${deal.source} 的精选优惠，点击查看完整操作步骤、注意事项与有效期。`;
+  }
 
   return {
     index,
-    brandLabel: deal.brandLogo ? extractBrandGuess(deal.brandLogo) : deal.source,
+    brandLabel: deal.brandName ?? deal.source ?? "Brand",
     time: relativeTime(index),
-    heat: (Math.floor(Math.random() * 200) + 80),
+    heat: deal.heat ?? 0,
     badge,
-    priceLine,
+    badgeKind,
+    price,
+    originalPrice,
+    savingsLabel,
+    priceLine: price ?? "",
     description,
   };
 }
 
-function extractBrandGuess(url: string): string {
-  // Best-effort brand label from filename hashes when there is no friendly name.
-  const m = url.match(/brands\/([^.]+)/);
-  return m?.[1]?.slice(0, 8).toUpperCase() ?? "Brand";
+function parseMoney(s: string): number | null {
+  const m = s.replace(/,/g, "").match(/\$?(\d+(?:\.\d+)?)/);
+  return m ? Number(m[1]) : null;
+}
+
+function formatMoney(n: number): string {
+  return `$${n.toFixed(2).replace(/\.00$/, "")}`;
 }
 
 function relativeTime(i: number): string {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
 import { SITE } from "@/lib/site";
@@ -9,7 +10,7 @@ import { SearchBar } from "./SearchBar";
 
 type NavGroup = {
   label: string;
-  href?: string;
+  href: string;
   icon?: React.ReactNode;
   children?: { label: string; href: string }[];
 };
@@ -49,29 +50,57 @@ const NAV_GROUPS: NavGroup[] = [
 
 export function Header() {
   const { data: session, status } = useSession();
-  const [tab, setTab] = useState<"latest" | "popular">("latest");
+  const router = useRouter();
+  const pathname = usePathname();
+  const search = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [, startNav] = useTransition();
+
+  const currentTab = pathname === "/" && search.get("tab") === "popular" ? "popular" : "latest";
+
+  const setTab = (tab: "latest" | "popular") => {
+    if (pathname === "/") {
+      startNav(() => router.push(tab === "popular" ? "/?tab=popular" : "/", { scroll: false }));
+    } else {
+      startNav(() => router.push(tab === "popular" ? "/?tab=popular" : "/"));
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full">
       <div className="absolute inset-0 bg-white/95 backdrop-blur-xl border-b border-gray-100" />
       <div className="relative mx-auto max-w-6xl px-4">
-        <div className="flex h-20 items-center justify-between gap-8">
-          <Link href="/" className="flex items-center gap-3 flex-shrink-0" aria-label={`${SITE.name} 首页`}>
-            <Logo className="h-11 w-11" />
-            <span className="text-lg font-extrabold tracking-tight text-gray-800">
+        <div className="flex h-20 items-center justify-between gap-4">
+          <Link
+            href="/"
+            className="flex items-center gap-2 flex-shrink-0"
+            aria-label={`${SITE.name} 首页`}
+          >
+            <span className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#F97316] to-[#EA580C] overflow-hidden">
+              <img
+                src="/images/site/logo.png"
+                alt={SITE.name}
+                width={36}
+                height={36}
+                className="h-9 w-9 object-contain"
+              />
+            </span>
+            <span className="text-lg font-extrabold tracking-tight text-gray-800 hidden sm:inline">
               {SITE.name}
             </span>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex-1 max-w-md hidden md:block">
             <SearchBar />
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/submit"
-              className="hidden md:flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-full transition-all duration-200 hover:opacity-90 active:scale-[0.98] gradient-brand"
+              className="hidden sm:flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white rounded-full transition-all duration-200 hover:opacity-90 active:scale-[0.98] gradient-brand"
             >
               <PlusIcon className="h-4 w-4" />
-              <span>分享优惠</span>
+              <span className="hidden sm:inline">分享优惠</span>
             </Link>
             <UserMenu session={session} status={status} />
             <button
@@ -91,8 +120,10 @@ export function Header() {
               type="button"
               onClick={() => setTab("latest")}
               className={
-                "relative px-5 py-2 text-sm font-semibold rounded-full transition-all duration-200 " +
-                (tab === "latest" ? "text-white gradient-brand" : "text-gray-500 hover:text-gray-700")
+                "relative px-4 py-1.5 text-sm font-semibold rounded-full transition-all duration-200 " +
+                (currentTab === "latest"
+                  ? "text-white gradient-brand"
+                  : "text-gray-500 hover:text-gray-700")
               }
             >
               最新
@@ -101,8 +132,10 @@ export function Header() {
               type="button"
               onClick={() => setTab("popular")}
               className={
-                "relative px-5 py-2 text-sm font-semibold rounded-full transition-all duration-200 " +
-                (tab === "popular" ? "text-white gradient-brand" : "text-gray-500 hover:text-gray-700")
+                "relative px-4 py-1.5 text-sm font-semibold rounded-full transition-all duration-200 " +
+                (currentTab === "popular"
+                  ? "text-white gradient-brand"
+                  : "text-gray-500 hover:text-gray-700")
               }
             >
               热门
@@ -115,13 +148,14 @@ export function Header() {
         </nav>
 
         {mobileOpen ? (
-          <div className="md:hidden pb-4">
-            <MobileTabSwitcher tab={tab} setTab={setTab} />
-            <ul className="mt-3 grid grid-cols-2 gap-2 text-sm">
+          <div className="md:hidden pb-4 space-y-3">
+            <MobileSearch onSubmit={() => setMobileOpen(false)} />
+            <MobileTabSwitcher tab={currentTab} setTab={(t) => { setTab(t); setMobileOpen(false); }} />
+            <ul className="grid grid-cols-2 gap-2 text-sm">
               {NAV_GROUPS.map((g) => (
                 <li key={g.label}>
                   <Link
-                    href={g.href ?? "#"}
+                    href={g.href}
                     onClick={() => setMobileOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 text-gray-700"
                   >
@@ -138,6 +172,33 @@ export function Header() {
   );
 }
 
+function MobileSearch({ onSubmit }: { onSubmit: () => void }) {
+  const router = useRouter();
+  const [q, setQ] = useState("");
+  return (
+    <form
+      role="search"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const term = q.trim();
+        if (!term) return;
+        router.push(`/search?q=${encodeURIComponent(term)}`);
+        onSubmit();
+      }}
+      className="relative"
+    >
+      <input
+        type="search"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="搜索优惠..."
+        aria-label="搜索"
+        className="w-full pl-4 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-full outline-none focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 placeholder:text-gray-400"
+      />
+    </form>
+  );
+}
+
 function UserMenu({
   session,
   status,
@@ -148,7 +209,6 @@ function UserMenu({
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
 
-  // Don't render until client knows auth state to avoid hydration mismatch
   if (status === "loading") {
     return <div className="hidden md:block h-10 w-10 rounded-full bg-gray-100 animate-pulse" />;
   }
@@ -253,7 +313,7 @@ function NavGroupItem({ group }: { group: NavGroup }) {
   return (
     <div className="relative group/nav">
       <Link
-        href={group.href ?? "#"}
+        href={group.href}
         className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 rounded-lg transition-colors"
       >
         <span className="text-gray-500">{group.icon}</span>
@@ -305,25 +365,6 @@ function MobileTabSwitcher({
         </button>
       ))}
     </div>
-  );
-}
-
-function Logo({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-      <defs>
-        <linearGradient id="bunnyLogo" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#f97316" />
-          <stop offset="100%" stopColor="#ea580c" />
-        </linearGradient>
-      </defs>
-      <rect width="64" height="64" rx="14" fill="url(#bunnyLogo)" />
-      <ellipse cx="20" cy="14" rx="5" ry="11" fill="#fff" opacity="0.95" />
-      <ellipse cx="44" cy="14" rx="5" ry="11" fill="#fff" opacity="0.95" />
-      <circle cx="25" cy="34" r="3" fill="#fff" />
-      <circle cx="39" cy="34" r="3" fill="#fff" />
-      <path d="M25 44 Q32 50 39 44" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" />
-    </svg>
   );
 }
 

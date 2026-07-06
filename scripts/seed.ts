@@ -16,10 +16,20 @@ import { neon } from "@neondatabase/serverless";
 type DealSeed = {
   id: string;
   title: string;
-  brandLogo: string | null;
+  brandId?: string | null;
+  brandName?: string | null;
+  brandLogo?: string | null;
   cover: string;
-  cta: string | null;
+  cta?: string | null;
   source: string;
+  price?: string | null;
+  originalPrice?: string | null;
+  discount?: string | null;
+  description?: string | null;
+  isFree?: boolean;
+  isHot?: boolean;
+  heat?: number;
+  categories?: string[];
 };
 
 type BrandSeed = {
@@ -180,9 +190,11 @@ async function main() {
     );
   }
 
-  // Map brandLogo URL → brand_id by filename hash (the assets share naming).
+  // Map brandId or logo filename to brand row.
+  const idToBrand = new Map<string, BrandSeed>();
   const logoToBrand = new Map<string, string>();
   for (const b of brands) {
+    idToBrand.set(b.id, b);
     try {
       const url = new URL(b.logo);
       const file = url.pathname.split("/").pop() ?? "";
@@ -194,21 +206,26 @@ async function main() {
 
   console.log(`Seeding ${deals.length} deals…`);
   for (const d of deals) {
-    const brandId = d.brandLogo
-      ? (() => {
-          try {
-            const file = new URL(d.brandLogo).pathname.split("/").pop() ?? "";
-            return logoToBrand.get(file) ?? null;
-          } catch {
-            return null;
-          }
-        })()
-      : null;
+    let brandId: string | null = null;
+    if (d.brandId && idToBrand.has(d.brandId)) {
+      brandId = d.brandId;
+    } else if (d.brandLogo) {
+      try {
+        const file = new URL(d.brandLogo).pathname.split("/").pop() ?? "";
+        brandId = logoToBrand.get(file) ?? null;
+      } catch {
+        brandId = null;
+      }
+    }
+    const brandRow = brandId ? idToBrand.get(brandId) ?? null : null;
+    const slugFallback = inferPrice(d.title);
+    const slugDiscFallback = inferDiscount(d.title);
+    const cats = d.categories && d.categories.length > 0 ? d.categories : classifyDeal(d.title, CATEGORY_TREE);
 
     await sql(
       `INSERT INTO deals
-         (id, title, brand_id, cover, cta, source, price, discount, description, is_free, is_hot, heat, published_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, EXTRACT(EPOCH FROM NOW())::BIGINT)
+         (id, title, brand_id, cover, cta, source, price, original_price, discount, description, is_free, is_hot, heat, published_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, EXTRACT(EPOCH FROM NOW())::BIGINT)
        ON CONFLICT (id) DO UPDATE SET
          title = EXCLUDED.title,
          brand_id = EXCLUDED.brand_id,
@@ -216,6 +233,7 @@ async function main() {
          cta = EXCLUDED.cta,
          source = EXCLUDED.source,
          price = EXCLUDED.price,
+         original_price = EXCLUDED.original_price,
          discount = EXCLUDED.discount,
          description = EXCLUDED.description,
          is_free = EXCLUDED.is_free,
@@ -226,19 +244,23 @@ async function main() {
         d.title,
         brandId,
         d.cover,
-        d.cta,
+        d.cta ?? null,
         d.source,
-        inferPrice(d.title),
-        inferDiscount(d.title),
-        null,
-        inferIsFree(d.title),
-        inferIsHot(d.title),
-        inferHeat(d.title),
+        d.price ?? slugFallback,
+        d.originalPrice ?? null,
+        d.discount ?? slugDiscFallback,
+        d.description ?? null,
+        d.isFree ?? inferIsFree(d.title),
+        d.isHot ?? inferIsHot(d.title),
+        d.heat ?? inferHeat(d.title),
       ],
     );
 
-    const slugs = classifyDeal(d.title, CATEGORY_TREE);
-    for (const slug of slugs) {
+    // Backfill brandName/logo for the join (logo only used if brand row missing).
+    void brandRow;
+    void d.brandName;
+
+    for (const slug of cats) {
       await sql(
         "INSERT INTO deal_categories (deal_id, category_slug) VALUES ($1, $2) ON CONFLICT DO NOTHING",
         [d.id, slug],

@@ -118,20 +118,22 @@ async function ensureSchema() {
     )`);
   await sql(Neonql`
     CREATE TABLE IF NOT EXISTS deals (
-      id           TEXT PRIMARY KEY,
-      title        TEXT NOT NULL,
-      brand_id     TEXT REFERENCES brands(id) ON DELETE SET NULL,
-      cover        TEXT NOT NULL,
-      cta          TEXT,
-      source       TEXT NOT NULL DEFAULT 'bunnysave.com',
-      price        TEXT,
-      discount     TEXT,
-      description  TEXT,
-      is_free      BOOLEAN NOT NULL DEFAULT FALSE,
-      is_hot       BOOLEAN NOT NULL DEFAULT FALSE,
-      heat         INT     NOT NULL DEFAULT 0,
-      published_at BIGINT  NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT
+      id            TEXT PRIMARY KEY,
+      title         TEXT NOT NULL,
+      brand_id      TEXT REFERENCES brands(id) ON DELETE SET NULL,
+      cover         TEXT NOT NULL,
+      cta           TEXT,
+      source        TEXT NOT NULL DEFAULT 'bunnysave.com',
+      price         TEXT,
+      original_price TEXT,
+      discount      TEXT,
+      description   TEXT,
+      is_free       BOOLEAN NOT NULL DEFAULT FALSE,
+      is_hot        BOOLEAN NOT NULL DEFAULT FALSE,
+      heat          INT     NOT NULL DEFAULT 0,
+      published_at  BIGINT  NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT
     )`);
+  await sql(Neonql`ALTER TABLE deals ADD COLUMN IF NOT EXISTS original_price TEXT`);
   await sql(Neonql`
     CREATE TABLE IF NOT EXISTS deal_categories (
       deal_id      TEXT NOT NULL REFERENCES deals(id)   ON DELETE CASCADE,

@@ -4,8 +4,6 @@ import { fetchAll, fetchOne, db } from "@/lib/db";
 
 export type { Deal, Brand, Category };
 
-// Re-export the pure helpers so client components can import them from
-// `localImageFor` via this module — these helpers don't pull server-only deps.
 export { localImageFor as localImageForServer, localImageExists } from "@/lib/image-path";
 
 export { localImageFor } from "@/lib/image-path";
@@ -20,6 +18,7 @@ type DealRow = {
   cta: string | null;
   source: string;
   price: string | null;
+  original_price: string | null;
   discount: string | null;
   description: string | null;
   is_free: boolean;
@@ -44,19 +43,31 @@ type CategoryRow = {
   parent_slug: string | null;
 };
 
-function rowToDeal(row: DealRow): Deal {
+function rowToDeal(row: DealRow, brand: BrandRow | null): Deal {
+  const publishedAt =
+    typeof row.published_at === "string" ? Number(row.published_at) : row.published_at;
   return {
     id: row.id,
     title: row.title,
-    brandLogo: row.brand_id ? null : null,
+    brandId: row.brand_id,
+    brandName: brand?.name ?? null,
+    brandLogo: brand?.logo ?? null,
     cover: row.cover,
     cta: row.cta,
     source: row.source,
+    price: row.price,
+    originalPrice: row.original_price,
+    discount: row.discount,
+    description: row.description,
+    isFree: row.is_free,
+    isHot: row.is_hot,
+    heat: row.heat,
+    publishedAt,
   };
 }
 
 function rowToBrand(row: BrandRow): Brand {
-  return { id: row.id, name: row.name, logo: row.logo };
+  return { id: row.id, name: row.name, logo: row.logo, dealCount: row.deal_count };
 }
 
 function rowToCategory(row: CategoryRow): Category {
@@ -100,107 +111,47 @@ export async function categoryFor(slug: string): Promise<Category | null> {
   return all.find((c) => c.slug === slug) ?? null;
 }
 
+const DEAL_SELECT = `
+  SELECT d.id, d.title, d.brand_id, d.cover, d.cta, d.source,
+         d.price, d.original_price, d.discount, d.description,
+         d.is_free, d.is_hot, d.heat, d.published_at,
+         b.name  AS brand_name,
+         b.logo  AS brand_logo
+  FROM deals d
+  LEFT JOIN brands b ON b.id = d.brand_id
+`;
+
+type JoinedDealRow = DealRow & { brand_name: string | null; brand_logo: string | null };
+
 export async function getDeals(): Promise<Deal[]> {
   await db();
-  const rows = await fetchAll<DealRow>(
-    "SELECT id, title, brand_id, cover, cta, source, price, discount, description, is_free, is_hot, heat, published_at FROM deals ORDER BY published_at DESC",
+  const rows = await fetchAll<JoinedDealRow>(
+    `${DEAL_SELECT} ORDER BY d.published_at DESC`,
   );
-  // Resolve brand logos via a second cheap lookup.
-  const brandIds = Array.from(new Set(rows.map((r) => r.brand_id).filter(Boolean) as string[]));
-  const brandById = new Map<string, BrandRow>();
-  if (brandIds.length > 0) {
-    const placeholders = brandIds.map((_, i) => `$${i + 1}`).join(",");
-    const brandRows = await fetchAll<BrandRow>(
-      `SELECT id, name, logo, deal_count, sort_order FROM brands WHERE id IN (${placeholders})`,
-      brandIds,
-    );
-    for (const b of brandRows) brandById.set(b.id, b);
-  }
-  return rows.map((r) => {
-    const brand = r.brand_id ? brandById.get(r.brand_id) : null;
-    return {
-      id: r.id,
-      title: r.title,
-      brandLogo: brand?.logo ?? null,
-      cover: r.cover,
-      cta: r.cta,
-      source: r.source,
-    };
-  });
+  return rows.map((r) =>
+    rowToDeal(r, r.brand_id ? { id: r.brand_id, name: r.brand_name ?? "", logo: r.brand_logo ?? "", deal_count: 0, sort_order: 0 } : null),
+  );
 }
 
 export async function getDeal(id: string): Promise<Deal | null> {
   await db();
-  const row = await fetchOne<DealRow>(
-    "SELECT id, title, brand_id, cover, cta, source, price, discount, description, is_free, is_hot, heat, published_at FROM deals WHERE id = $1 LIMIT 1",
+  const rows = await fetchAll<JoinedDealRow>(
+    `${DEAL_SELECT} WHERE d.id = $1 LIMIT 1`,
     [id],
   );
+  const row = rows[0];
   if (!row) return null;
-  let brand: BrandRow | null = null;
-  if (row.brand_id) {
-    brand = await fetchOne<BrandRow>(
-      "SELECT id, name, logo, deal_count, sort_order FROM brands WHERE id = $1 LIMIT 1",
-      [row.brand_id],
-    );
-  }
-  return {
-    id: row.id,
-    title: row.title,
-    brandLogo: brand?.logo ?? null,
-    cover: row.cover,
-    cta: row.cta,
-    source: row.source,
-  };
+  return rowToDeal(
+    row,
+    row.brand_id ? { id: row.brand_id, name: row.brand_name ?? "", logo: row.brand_logo ?? "", deal_count: 0, sort_order: 0 } : null,
+  );
 }
 
-export type DealFull = Deal & {
-  brandName: string | null;
-  brandId: string | null;
-  price: string | null;
-  discount: string | null;
-  description: string | null;
-  isFree: boolean;
-  isHot: boolean;
-  heat: number;
-  publishedAt: number;
-};
+export type DealFull = Deal;
 
-/** Full record used by the deal detail page (includes brand name + price/desc). */
+/** Full record used by the deal detail page (same as base Deal — kept for compatibility). */
 export async function getDealFull(id: string): Promise<DealFull | null> {
-  await db();
-  const row = await fetchOne<DealRow>(
-    "SELECT id, title, brand_id, cover, cta, source, price, discount, description, is_free, is_hot, heat, published_at FROM deals WHERE id = $1 LIMIT 1",
-    [id],
-  );
-  if (!row) return null;
-  let brand: BrandRow | null = null;
-  if (row.brand_id) {
-    brand = await fetchOne<BrandRow>(
-      "SELECT id, name, logo, deal_count, sort_order FROM brands WHERE id = $1 LIMIT 1",
-      [row.brand_id],
-    );
-  }
-  const publishedAt =
-    typeof row.published_at === "string"
-      ? Number(row.published_at)
-      : row.published_at;
-  return {
-    id: row.id,
-    title: row.title,
-    brandLogo: brand?.logo ?? null,
-    cover: row.cover,
-    cta: row.cta,
-    source: row.source,
-    brandName: brand?.name ?? null,
-    brandId: brand?.id ?? null,
-    price: row.price,
-    discount: row.discount,
-    description: row.description,
-    isFree: row.is_free,
-    isHot: row.is_hot,
-    heat: row.heat,
-    publishedAt,
-  };
+  return getDeal(id);
 }
 
 export async function getBrands(): Promise<Brand[]> {
