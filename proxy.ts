@@ -3,19 +3,13 @@ import { NextResponse, type NextRequest } from "next/server";
 /**
  * Coarse pre-filter for /admin/*. The real role check happens inside each
  * page (RSC) via `requireAdmin()` so we can read the latest role from the
- * DB. The middleware just bounces unauthenticated visitors early.
- *
- * We intentionally do NOT use `withAuth` here — that would force
- * `next-auth/middleware` to run on Edge runtime and read the JWT cookie
- * twice (once here, once in the RSC). A simple 302 is cheaper and the
- * authoritative gate stays server-side.
+ * DB. The proxy just bounces unauthenticated visitors early.
  */
-export function middleware(req: NextRequest) {
+export default function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
   if (!pathname.startsWith("/admin")) {
     return NextResponse.next();
   }
-  // next-auth's default session cookie names
   const hasSession =
     req.cookies.has("authjs.session-token") ||
     req.cookies.has("__Secure-authjs.session-token") ||
