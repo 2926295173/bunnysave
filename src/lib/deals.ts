@@ -25,6 +25,7 @@ type DealRow = {
   is_hot: boolean;
   heat: number;
   published_at: number | string;
+  valid_through: number | string | null;
 };
 
 type BrandRow = {
@@ -46,6 +47,12 @@ type CategoryRow = {
 function rowToDeal(row: DealRow, brand: BrandRow | null): Deal {
   const publishedAt =
     typeof row.published_at === "string" ? Number(row.published_at) : row.published_at;
+  const validThrough =
+    row.valid_through === null || row.valid_through === undefined
+      ? null
+      : typeof row.valid_through === "string"
+        ? Number(row.valid_through)
+        : row.valid_through;
   return {
     id: row.id,
     title: row.title,
@@ -63,6 +70,7 @@ function rowToDeal(row: DealRow, brand: BrandRow | null): Deal {
     isHot: row.is_hot,
     heat: row.heat,
     publishedAt,
+    validThrough,
   };
 }
 
@@ -114,7 +122,7 @@ export async function categoryFor(slug: string): Promise<Category | null> {
 const DEAL_SELECT = `
   SELECT d.id, d.title, d.brand_id, d.cover, d.cta, d.source,
          d.price, d.original_price, d.discount, d.description,
-         d.is_free, d.is_hot, d.heat, d.published_at,
+         d.is_free, d.is_hot, d.heat, d.published_at, d.valid_through,
          b.name  AS brand_name,
          b.logo  AS brand_logo
   FROM deals d

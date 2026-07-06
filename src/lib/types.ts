@@ -15,6 +15,7 @@ export type Deal = {
   isHot: boolean;
   heat: number;
   publishedAt: number;
+  validThrough: number | null;
 };
 
 export type Brand = {

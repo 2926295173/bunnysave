@@ -131,9 +131,11 @@ async function ensureSchema() {
       is_free       BOOLEAN NOT NULL DEFAULT FALSE,
       is_hot        BOOLEAN NOT NULL DEFAULT FALSE,
       heat          INT     NOT NULL DEFAULT 0,
-      published_at  BIGINT  NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT
+      published_at  BIGINT  NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT,
+      valid_through  BIGINT
     )`);
   await sql(Neonql`ALTER TABLE deals ADD COLUMN IF NOT EXISTS original_price TEXT`);
+  await sql(Neonql`ALTER TABLE deals ADD COLUMN IF NOT EXISTS valid_through BIGINT`);
   await sql(Neonql`
     CREATE TABLE IF NOT EXISTS deal_categories (
       deal_id      TEXT NOT NULL REFERENCES deals(id)   ON DELETE CASCADE,

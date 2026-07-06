@@ -7,6 +7,9 @@ import { DealCard } from "@/components/DealCard";
 import { Sidebar } from "@/components/Sidebar";
 import { CoverLightbox } from "@/components/deal/CoverLightbox";
 import { DealTabs } from "@/components/deal/DealTabs";
+import { ShoppingGuide } from "@/components/deal/ShoppingGuide";
+import { MobileCtaBar } from "@/components/deal/MobileCtaBar";
+import { ProductJsonLd, BreadcrumbJsonLd } from "@/components/deal/JsonLd";
 
 type Params = { id: string };
 
@@ -32,6 +35,9 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     title: deal.title,
     description: desc,
     openGraph: { title: deal.title, description: desc, images: [localImageFor(deal.cover, "deals")] },
+    other: deal.validThrough
+      ? { "product:availability": "out of stock" }
+      : {},
   };
 }
 
@@ -63,40 +69,93 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
   const origNum = parseMoney(deal.originalPrice);
   const savings = priceNum !== null && origNum !== null && origNum > priceNum ? origNum - priceNum : null;
   const dealDate = formatDate(deal.publishedAt);
+  const validThroughSec = deal.validThrough;
+  const validThroughMs = validThroughSec !== null ? validThroughSec * 1000 : null;
+  const isExpired = validThroughMs !== null && validThroughMs < Date.now();
+  const validThroughDate = validThroughSec !== null ? formatFullDate(validThroughSec) : null;
+  const offerJsonLdUrl = `/deal/${deal.id}`;
+  const validThroughIso = validThroughSec !== null ? new Date(validThroughSec * 1000).toISOString() : null;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
-      <div className="flex gap-6">
-        <div className="flex-1 min-w-0">
-          {/* Breadcrumb */}
-          <nav aria-label="面包屑" className="mb-4 text-sm text-bunny-muted">
-            <ol className="flex items-center gap-2 overflow-hidden">
-              <li>
-                <Link href="/" className="hover:text-bunny-accent whitespace-nowrap">首页</Link>
+    <>
+      <ProductJsonLd
+        name={deal.title}
+        description={deal.description ?? deal.title}
+        image={localImageFor(deal.cover, "deals")}
+        url={offerJsonLdUrl}
+        sellerName={deal.brandName ?? deal.source}
+        sellerUrl={ctaHref}
+        validThroughIso={validThroughIso}
+        publishedIso={new Date(deal.publishedAt * 1000).toISOString()}
+      />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "首页", url: "/" },
+          ...(parentCat
+            ? [{ name: parentLabelFor(parentCat), url: `/category/${parentCat}` }]
+            : []),
+          ...(subCats[0]
+            ? [{ name: subLabelFor(subCats[0]), url: `/category/${parentCat ?? "daily-deals"}/${subCats[0]}` }]
+            : []),
+          { name: deal.title, url: `/deal/${deal.id}` },
+        ]}
+      />
+
+      {/* Breadcrumb band */}
+      <div className="border-b border-gray-200 bg-white py-3 overflow-hidden">
+        <div className="mx-auto max-w-6xl px-4">
+          <nav aria-label="面包屑">
+            <ol className="flex items-center gap-2 text-sm text-gray-500 overflow-hidden">
+              <li className="flex items-center gap-2 min-w-0 flex-shrink-0">
+                <Link href="/" className="hover:text-[#F97316] transition-colors whitespace-nowrap">首页</Link>
               </li>
-              <li className="flex items-center">
-                <ChevronRight />
-                <Link href={parentHref} className="ml-2 hover:text-bunny-accent whitespace-nowrap">
-                  {parentLabel}
-                </Link>
-              </li>
-              {subLabel ? (
-                <li className="flex items-center min-w-0">
+              {parentCat ? (
+                <li className="flex items-center gap-2 min-w-0 flex-shrink-0">
                   <ChevronRight />
-                  <span className="ml-2 text-bunny-ink truncate">{subLabel}</span>
+                  <Link href={parentHref} className="hover:text-[#F97316] transition-colors whitespace-nowrap">
+                    {parentLabel}
+                  </Link>
                 </li>
               ) : null}
-              <li className="flex items-center min-w-0">
+              {subLabel ? (
+                <li className="flex items-center gap-2 min-w-0 flex-shrink-0">
+                  <ChevronRight />
+                  <Link
+                    href={parentCat ? `/category/${parentCat}/${subCats[0]}` : "#"}
+                    className="hover:text-[#F97316] transition-colors whitespace-nowrap"
+                  >
+                    {subLabel}
+                  </Link>
+                </li>
+              ) : null}
+              <li className="flex items-center gap-2 min-w-0 flex-shrink-0 last:min-w-0">
                 <ChevronRight />
-                <span className="ml-2 text-bunny-ink truncate font-medium">{deal.title}</span>
+                <span className="text-gray-900 truncate">{deal.title}</span>
               </li>
             </ol>
           </nav>
+        </div>
+      </div>
 
-          {/* Hero card */}
-          <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
-            <div className="p-6">
-              <div className="flex flex-col lg:flex-row gap-6">
+      {/* Expired banner */}
+      {isExpired ? (
+        <div className="bg-red-50 border-b border-red-100">
+          <div className="mx-auto max-w-6xl px-4 py-3">
+            <div className="flex items-center gap-2 text-red-700">
+              <AlertTriangleIcon className="h-5 w-5" />
+              <span className="font-medium">此优惠已过期</span>
+              <span className="text-sm text-red-600">- 此优惠可能已失效</span>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mx-auto max-w-6xl px-4 py-6">
+        <div className="flex gap-6">
+          <div className="flex-1 min-w-0">
+            <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
+              <div className="p-6">
+                <div className="flex flex-col lg:flex-row gap-6">
                 {/* Square image */}
                 <div className="lg:w-72 flex-shrink-0">
                   <CoverLightbox
@@ -194,6 +253,16 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
                     </div>
                   </div>
 
+                  {/* Expired line under CTA */}
+                  {isExpired && validThroughDate ? (
+                    <div className="mt-4 flex items-center gap-2 text-sm text-red-600">
+                      <ClockIcon className="h-4 w-4" />
+                      <span>
+                        已过期：<>{validThroughDate}</>
+                      </span>
+                    </div>
+                  ) : null}
+
                   {/* Amazon Prime hint */}
                   {isAmazon ? (
                     <div className="mt-5 p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 flex items-start gap-3">
@@ -250,6 +319,9 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
               ))}
             </div>
           </section>
+
+          {/* Shopping guide */}
+          <ShoppingGuide />
         </div>
 
         {/* Right sidebar */}
@@ -260,6 +332,9 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
         </aside>
       </div>
     </div>
+
+      <MobileCtaBar href={ctaHref} label={`点击前往 ${deal.brandName ?? "商家"}`} />
+    </>
   );
 }
 
@@ -306,6 +381,12 @@ function formatDate(epoch: number): string {
   if (!epoch) return "";
   const d = new Date(epoch * 1000);
   return `${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+function formatFullDate(epoch: number): string {
+  if (!epoch) return "";
+  const d = new Date(epoch * 1000);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
 function ChevronRight() {
@@ -365,6 +446,44 @@ function BookmarkIcon({ className }: { className?: string }) {
       className={className}
     >
       <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+    </svg>
+  );
+}
+
+function ClockIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+function AlertTriangleIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+      />
     </svg>
   );
 }

@@ -225,7 +225,9 @@ function MarkdownBody({ source }: { source: string | null }) {
 
 function renderInline(text: string): React.ReactNode {
   const parts: React.ReactNode[] = [];
-  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
+  // Order matters: markdown links [text](url) → bold/code/em → bare http(s):// links.
+  const regex =
+    /(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|https?:\/\/[^\s)]+)/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let key = 0;
@@ -233,14 +235,56 @@ function renderInline(text: string): React.ReactNode {
     if (m.index > last) parts.push(text.slice(last, m.index));
     const tok = m[0];
     if (tok.startsWith("**")) {
-      parts.push(<strong key={key++} className="text-bunny-ink font-semibold">{tok.slice(2, -2)}</strong>);
+      parts.push(
+        <strong key={key++} className="text-bunny-ink font-semibold">
+          {tok.slice(2, -2)}
+        </strong>,
+      );
     } else if (tok.startsWith("`")) {
-      parts.push(<code key={key++} className="rounded bg-gray-100 px-1 text-sm">{tok.slice(1, -1)}</code>);
-    } else {
+      parts.push(
+        <code key={key++} className="rounded bg-gray-100 px-1 text-sm">
+          {tok.slice(1, -1)}
+        </code>,
+      );
+    } else if (tok.startsWith("*")) {
       parts.push(<em key={key++}>{tok.slice(1, -1)}</em>);
+    } else if (tok.startsWith("[")) {
+      const linkMatch = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(tok);
+      if (linkMatch) {
+        const [, label, href] = linkMatch;
+        parts.push(
+          <LinkAuto key={key++} href={href}>
+            {label}
+          </LinkAuto>,
+        );
+      } else {
+        parts.push(tok);
+      }
+    } else if (/^https?:\/\//.test(tok)) {
+      parts.push(
+        <LinkAuto key={key++} href={tok}>
+          {tok}
+        </LinkAuto>,
+      );
+    } else {
+      parts.push(tok);
     }
     last = m.index + tok.length;
   }
   if (last < text.length) parts.push(text.slice(last));
   return parts;
+}
+
+function LinkAuto({ href, children }: { href: string; children: React.ReactNode }) {
+  const isExternal = /^https?:\/\//.test(href);
+  return (
+    <a
+      href={href}
+      target={isExternal ? "_blank" : undefined}
+      rel={isExternal ? "noopener noreferrer" : undefined}
+      className="text-[#F97316] no-underline hover:underline"
+    >
+      {children}
+    </a>
+  );
 }
