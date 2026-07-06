@@ -46,6 +46,7 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <PackageIcon className="h-4 w-4" />,
     children: [{ label: "集体诉讼", href: "/category/other/class-action-settlement" }],
   },
+  { label: "文章", href: "/articles" },
 ];
 
 export function Header() {
