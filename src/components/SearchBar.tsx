@@ -9,7 +9,7 @@ export function SearchBar() {
   const [pending, start] = useTransition();
 
   return (
-    <div className="w-[192px]">
+    <div className="w-[192px] focus-within:w-[256px] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
       <form
         role="search"
         onSubmit={(e) => {
@@ -27,12 +27,24 @@ export function SearchBar() {
           onChange={(e) => setQ(e.target.value)}
           placeholder="搜索优惠..."
           aria-label="搜索"
-          className="w-full text-[14px] rounded-full outline-none transition-all duration-200 placeholder:text-gray-400 focus:ring-2 focus:ring-[#F97316]/20"
+          className="w-full text-[14px] rounded-full outline-none transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] placeholder:text-gray-400"
           style={{
             height: 41.67,
             padding: "10px 16px 10px 40px",
             border: "1px solid rgb(229, 231, 235)",
             background: "rgb(249, 250, 251)",
+            boxShadow:
+              "0 0 0 0px rgba(0,0,0,0), 0 0 0 0px rgba(0,0,0,0)",
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = "rgb(209, 213, 219)";
+            e.currentTarget.style.boxShadow =
+              "0 0 0 2px rgb(251, 250, 249), 0 0 0 4px rgb(243, 244, 246)";
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = "rgb(229, 231, 235)";
+            e.currentTarget.style.boxShadow =
+              "0 0 0 0px rgba(0,0,0,0), 0 0 0 0px rgba(0,0,0,0)";
           }}
         />
         {pending ? <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">…</span> : null}
