@@ -9,7 +9,7 @@ export function SearchBar() {
   const [pending, start] = useTransition();
 
   return (
-    <div className="w-56 lg:w-64">
+    <div className="w-48">
       <form
         role="search"
         onSubmit={(e) => {
