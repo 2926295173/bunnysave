@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
+export const dynamic = "force-dynamic";
+
 type SearchParams = { q?: string };
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<SearchParams> }) {

@@ -1,4 +1,4 @@
-#!/usr/bin/env -S node --experimental-strip-types --no-warnings
+#!/usr/bin/env bun
 /**
  * Wraps `scripts/seed.ts` for use as a `prebuild` step on Vercel.
  *
@@ -8,8 +8,8 @@
  *    don't want to touch production data).
  *  - Logs everything to stdout for Vercel's build log.
  */
-import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 
 if (process.env.SKIP_SEED === "1") {
   console.log("[prebuild] SKIP_SEED=1 — skipping seed.");
@@ -24,17 +24,15 @@ if (!process.env.DATABASE_URL && !process.env.AUTH_DB_URL) {
   process.exit(0);
 }
 
-const envFile = [
-  existsSync(".env.local") ? "--env-file-if-exists=.env.local" : "",
-  existsSync(".env.development.local") ? "--env-file-if-exists=.env.development.local" : "",
-].filter(Boolean);
+const envFiles: string[] = [];
+if (existsSync(".env.local")) envFiles.push(".env.local");
+if (existsSync(".env.development.local")) envFiles.push(".env.development.local");
 
 const result = spawnSync(
-  process.execPath,
+  "bun",
   [
-    "--experimental-strip-types",
-    "--no-warnings",
-    ...envFile,
+    "run",
+    ...envFiles.flatMap((f) => ["--env-file-if-exists=" + f]),
     "scripts/seed.ts",
   ],
   { stdio: "inherit" },
@@ -58,11 +56,10 @@ console.log("[prebuild] seed completed.");
 // Always run ensure-admin after seed; it's idempotent and exits cleanly
 // when ADMIN_EMAIL/ADMIN_PASSWORD aren't configured.
 const admin = spawnSync(
-  process.execPath,
+  "bun",
   [
-    "--experimental-strip-types",
-    "--no-warnings",
-    ...envFile,
+    "run",
+    ...envFiles.flatMap((f) => ["--env-file-if-exists=" + f]),
     "scripts/ensure-admin.ts",
   ],
   { stdio: "inherit" },

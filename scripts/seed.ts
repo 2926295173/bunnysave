@@ -1,4 +1,4 @@
-#!/usr/bin/env -S node --experimental-strip-types --no-warnings
+#!/usr/bin/env bun
 /**
  * Seed the Postgres deal catalog from `src/data/deals.json` + `src/data/brands.json`.
  *

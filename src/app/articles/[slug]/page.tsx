@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import Image from "next/image";
+
 import { getArticle, getArticleSlugs, getArticles } from "@/lib/articles";
 import { SITE } from "@/lib/site";
 
@@ -163,13 +163,11 @@ export default async function ArticleDetailPage({
       <article className="mx-auto max-w-4xl px-4 py-8">
         {/* Cover */}
         <div className="relative aspect-[2/1] w-full overflow-hidden rounded-2xl bg-gray-100 mb-6">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={article.cover}
             alt={article.title}
-            fill
-            sizes="(max-width: 896px) 100vw, 896px"
-            className="object-cover"
-            priority
+            className="absolute inset-0 w-full h-full object-cover"
           />
         </div>
 
@@ -341,6 +339,16 @@ function renderArticleBody(body: string): React.ReactNode {
       );
       continue;
     }
+    if (/^---+$/.test(trimmed)) {
+      blocks.push(
+        <hr
+          key={key++}
+          className="my-8 border-gray-200"
+        />,
+      );
+      i++;
+      continue;
+    }
     const para: string[] = [];
     while (i < lines.length) {
       const cur = lines[i].trim();
@@ -354,15 +362,6 @@ function renderArticleBody(body: string): React.ReactNode {
         break;
       para.push(cur);
       i++;
-    }
-    if (/^---+$/.test(trimmed)) {
-      blocks.push(
-        <hr
-          key={key++}
-          className="my-8 border-gray-200"
-        />,
-      );
-      continue;
     }
     if (para.length > 0) {
       blocks.push(
