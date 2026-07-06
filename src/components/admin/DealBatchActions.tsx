@@ -25,6 +25,7 @@ export function BatchToolbar({
   const [action, setAction] = useState<Action | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting UI state when selection clears
     if (n === 0) setShowCatMenu(null);
   }, [n]);
 
