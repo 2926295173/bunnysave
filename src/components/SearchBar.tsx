@@ -9,7 +9,7 @@ export function SearchBar() {
   const [pending, start] = useTransition();
 
   return (
-    <div className="w-48">
+    <div className="w-[192px]">
       <form
         role="search"
         onSubmit={(e) => {
@@ -27,7 +27,13 @@ export function SearchBar() {
           onChange={(e) => setQ(e.target.value)}
           placeholder="搜索优惠..."
           aria-label="搜索"
-          className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-full outline-none transition-all duration-200 focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 placeholder:text-gray-400"
+          className="w-full text-[14px] rounded-full outline-none transition-all duration-200 placeholder:text-gray-400 focus:ring-2 focus:ring-[#F97316]/20"
+          style={{
+            height: 41.67,
+            padding: "10px 16px 10px 40px",
+            border: "1px solid rgb(229, 231, 235)",
+            background: "rgb(249, 250, 251)",
+          }}
         />
         {pending ? <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">…</span> : null}
       </form>
