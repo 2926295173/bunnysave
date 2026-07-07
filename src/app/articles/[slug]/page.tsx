@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-
 import { getArticle, getArticleSlugs, getArticles } from "@/lib/articles";
 import { SITE } from "@/lib/site";
 
@@ -63,28 +62,27 @@ export default async function ArticleDetailPage({
   if (!article) notFound();
 
   const all = getArticles();
-  const others = all.filter((a) => a.slug !== article.slug).slice(0, 3);
+  const others = all.filter((a) => a.slug !== article.slug);
 
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: article.title,
     description: article.excerpt,
-    image: article.cover,
     inLanguage: "zh-CN",
-    datePublished: article.publishedAt,
-    dateModified: article.publishedAt,
-    author: { "@type": "Organization", name: SITE.name },
+    datePublished: `${article.publishedAt}T00:00:00.000Z`,
+    dateModified: `${article.publishedAt}T00:00:00.000Z`,
+    image: article.cover,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${SITE.url}/articles/${article.slug}`,
+    },
+    author: { "@type": "Organization", name: SITE.name, url: SITE.url },
     publisher: {
       "@type": "Organization",
       name: SITE.name,
-      url: SITE.url,
-      logo: {
-        "@type": "ImageObject",
-        url: `${SITE.url}/images/site/icon.png`,
-      },
+      logo: { "@type": "ImageObject", url: `${SITE.url}/logo.png` },
     },
-    mainEntityOfPage: `${SITE.url}/articles/${article.slug}`,
     keywords: article.tags.join(", "),
   };
 
@@ -118,121 +116,117 @@ export default async function ArticleDetailPage({
     <>
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       {/* Breadcrumb band */}
       <div className="border-b border-gray-200 bg-white py-3">
-        <div className="mx-auto max-w-4xl px-4">
+        <div className="mx-auto max-w-3xl px-4">
           <nav aria-label="面包屑">
-            <ol className="flex items-center gap-2 text-sm text-gray-500">
-              <li>
-                <Link
-                  href="/"
-                  className="hover:text-[#F97316] transition-colors whitespace-nowrap"
-                >
-                  首页
-                </Link>
-              </li>
-              <li className="flex items-center gap-2">
-                <ChevronRight />
-                <Link
-                  href="/articles"
-                  className="hover:text-[#F97316] transition-colors whitespace-nowrap"
-                >
-                  文章
-                </Link>
-              </li>
-              <li className="flex items-center gap-2 min-w-0">
-                <ChevronRight />
-                <span className="text-gray-900 truncate">
-                  {article.title}
-                </span>
-              </li>
-            </ol>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Link
+                href="/"
+                className="hover:text-[#F97316] transition-colors"
+              >
+                首页
+              </Link>
+              <ChevronRight />
+              <Link
+                href="/articles"
+                className="hover:text-[#F97316] transition-colors"
+              >
+                文章
+              </Link>
+              <ChevronRight />
+              <span className="text-gray-900 truncate">{article.title}</span>
+            </div>
           </nav>
         </div>
       </div>
 
-      <article className="mx-auto max-w-4xl px-4 py-8">
-        {/* Cover */}
-        <div className="relative aspect-[2/1] w-full overflow-hidden rounded-2xl bg-gray-100 mb-6">
+      <div className="mx-auto max-w-3xl px-4 py-8">
+        <article className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={article.cover}
             alt={article.title}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="w-full h-56 sm:h-72 object-cover"
           />
-        </div>
 
-        {/* Header */}
-        <header className="mb-8">
-          <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
-            <time>{formatChineseDate(article.publishedAt)}</time>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
-            {article.title}
-          </h1>
-          <p className="mt-3 text-base text-gray-600 leading-relaxed">
-            {article.excerpt}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {article.tags.map((t) => (
-              <span
-                key={t}
-                className="inline-block px-2.5 py-0.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-full"
+          <div className="p-6 sm:p-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              {article.title}
+            </h1>
+
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-400">
+              <time
+                dateTime={`${article.publishedAt}T00:00:00.000Z`}
               >
-                {t}
-              </span>
-            ))}
-          </div>
-        </header>
-
-        {/* Body */}
-        <div className="prose prose-base max-w-none prose-gray prose-headings:text-gray-900 prose-p:text-gray-800 prose-p:leading-relaxed prose-a:text-[#F97316] prose-a:no-underline hover:prose-a:underline prose-li:text-gray-800 prose-strong:text-gray-900">
-          {renderArticleBody(article.body)}
-        </div>
-
-        {/* Related */}
-        {others.length > 0 ? (
-          <section className="mt-12 pt-8 border-t border-gray-200">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">
-              更多文章
-            </h2>
-            <div className="space-y-3">
-              {others.map((o) => (
-                <Link
-                  key={o.slug}
-                  href={`/articles/${o.slug}`}
-                  className="group flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-all"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={o.cover}
-                    alt={o.title}
-                    loading="lazy"
-                    className="w-20 h-14 object-cover rounded-lg flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-[#F97316] transition-colors">
-                      {o.title}
-                    </h3>
-                    <p className="mt-1 text-xs text-gray-400">
-                      {formatChineseDate(o.publishedAt)}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+                {formatChineseDate(article.publishedAt)}
+              </time>
             </div>
-          </section>
-        ) : null}
-      </article>
+
+            {article.tags.length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {article.tags.map((t) => (
+                  <span
+                    key={t}
+                    className="inline-block px-2.5 py-0.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-full"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="mt-6 prose prose-slate max-w-none prose-headings:text-gray-900 prose-a:text-[#F97316] prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 prose-ul:my-4 prose-ol:my-4 prose-li:my-1">
+              {renderArticleBody(article.body)}
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <Link
+                href="/articles"
+                className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#F97316] transition-colors"
+              >
+                <ArrowLeft />
+                返回文章列表
+              </Link>
+
+              {others.length > 0 ? (
+                <div className="mt-8">
+                  <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+                    更多文章
+                  </h2>
+                  <ul className="mt-3 space-y-3">
+                    {others.map((o) => (
+                      <li key={o.slug}>
+                        <Link
+                          href={`/articles/${o.slug}`}
+                          className="group flex flex-col gap-0.5"
+                        >
+                          <span className="text-sm font-medium text-gray-800 group-hover:text-[#F97316] transition-colors">
+                            {o.title}
+                          </span>
+                          <time
+                            dateTime={`${o.publishedAt}T00:00:00.000Z`}
+                            className="text-xs text-gray-400"
+                          >
+                            {formatChineseDate(o.publishedAt)}
+                          </time>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </article>
+      </div>
     </>
   );
 }
@@ -256,6 +250,26 @@ function ChevronRight() {
   );
 }
 
+function ArrowLeft() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4"
+    >
+      <path d="m12 19-7-7 7-7" />
+      <path d="M19 12H5" />
+    </svg>
+  );
+}
+
 function formatChineseDate(iso: string): string {
   const [y, m, d] = iso.split("-").map((s) => Number(s));
   if (!y || !m || !d) return iso;
@@ -263,9 +277,6 @@ function formatChineseDate(iso: string): string {
 }
 
 function renderArticleBody(body: string): React.ReactNode {
-  // Render the article markdown body. Supports: paragraphs, ## headings,
-  // ordered + unordered lists, **bold**, `code`, and blank-line separation —
-  // matching what the curated articles need without pulling in remark.
   const blocks: React.ReactNode[] = [];
   const lines = body.split(/\r?\n/);
   let i = 0;
@@ -340,12 +351,7 @@ function renderArticleBody(body: string): React.ReactNode {
       continue;
     }
     if (/^---+$/.test(trimmed)) {
-      blocks.push(
-        <hr
-          key={key++}
-          className="my-8 border-gray-200"
-        />,
-      );
+      blocks.push(<hr key={key++} className="my-8 border-gray-200" />);
       i++;
       continue;
     }
@@ -405,5 +411,5 @@ function renderInline(text: string): React.ReactNode {
     last = m.index + tok.length;
   }
   if (last < text.length) parts.push(text.slice(last));
-  return parts;
+  return <>{parts}</>;
 }
