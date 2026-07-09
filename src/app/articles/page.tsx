@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getArticles } from "@/lib/articles";
 import { SITE } from "@/lib/site";
 
-export const revalidate = 3600;
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: `文章 - ${SITE.name}`,
@@ -37,8 +37,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ArticlesPage() {
-  const articles = getArticles();
+export default async function ArticlesPage() {
+  const articles = await getArticles();
 
   const collectionJsonLd = {
     "@context": "https://schema.org",

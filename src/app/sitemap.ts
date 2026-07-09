@@ -10,9 +10,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [{ url: `${SITE.url}/`, lastModified: new Date() }];
   }
   try {
-    const [deals, categories] = await Promise.all([getDeals(), getCategories()]);
+    const [deals, categories, articleSlugs] = await Promise.all([
+      getDeals(),
+      getCategories(),
+      getArticleSlugs(),
+    ]);
     const now = new Date();
-    const articleSlugs = getArticleSlugs();
     return [
       { url: `${SITE.url}/`, lastModified: now, changeFrequency: "daily", priority: 1 },
       { url: `${SITE.url}/articles`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },

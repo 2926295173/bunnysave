@@ -4,10 +4,11 @@ import { notFound } from "next/navigation";
 import { getArticle, getArticleSlugs, getArticles } from "@/lib/articles";
 import { SITE } from "@/lib/site";
 
-export const revalidate = 3600;
+export const revalidate = 600;
 
 export async function generateStaticParams() {
-  return getArticleSlugs().map((slug) => ({ slug }));
+  const slugs = await getArticleSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
@@ -16,7 +17,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const article = getArticle(slug);
+  const article = await getArticle(slug);
   if (!article) return { title: "文章不存在" };
   return {
     title: `${article.title} - ${SITE.name}`,
@@ -58,10 +59,10 @@ export default async function ArticleDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const article = getArticle(slug);
+  const article = await getArticle(slug);
   if (!article) notFound();
 
-  const all = getArticles();
+  const all = await getArticles();
   const others = all.filter((a) => a.slug !== article.slug);
 
   const articleJsonLd = {

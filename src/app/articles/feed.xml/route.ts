@@ -1,8 +1,8 @@
 import { getArticles } from "@/lib/articles";
 import { SITE } from "@/lib/site";
 
-export const dynamic = "force-static";
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function escapeXml(s: string): string {
   return s
@@ -14,7 +14,7 @@ function escapeXml(s: string): string {
 }
 
 export async function GET() {
-  const articles = getArticles();
+  const articles = await getArticles();
   const buildDate = new Date(
     Math.max(
       ...articles.map((a) => new Date(a.publishedAt).getTime()),

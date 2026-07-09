@@ -43,7 +43,7 @@ export class AdminForbiddenError extends Error {
   }
 }
 
-type AuditEntity = "deal" | "brand" | "category" | "submission";
+type AuditEntity = "deal" | "brand" | "category" | "submission" | "article";
 
 export async function recordAudit(
   actorId: string,

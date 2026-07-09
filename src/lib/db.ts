@@ -146,6 +146,23 @@ async function ensureSchema() {
   await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_deals_published_at ON deals(published_at DESC)`);
   await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_deal_categories_slug ON deal_categories(category_slug)`);
   await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_brands_sort ON brands(sort_order, name)`);
+
+  // ---------- Articles (long-form /articles/* content) ----------
+  await sql(Neonql`
+    CREATE TABLE IF NOT EXISTS articles (
+      slug         TEXT PRIMARY KEY,
+      title        TEXT NOT NULL,
+      excerpt      TEXT NOT NULL DEFAULT '',
+      cover        TEXT NOT NULL DEFAULT '',
+      tags         TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+      body         TEXT NOT NULL DEFAULT '',
+      status       TEXT NOT NULL DEFAULT 'published',
+      published_at BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT,
+      created_at   BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT,
+      updated_at   BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT
+    )`);
+  await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DESC)`);
+  await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status, published_at DESC)`);
 }
 
 // Wrapper const so we can use tagged-template syntax.
@@ -185,4 +202,36 @@ export async function exec(
   params: unknown[] = [],
 ): Promise<void> {
   await client()(sqlText, params);
+}
+
+/**
+ * Normalize a value returned from the Neon HTTP driver into a `string[]`.
+ * The driver surfaces Postgres `TEXT[]` columns as a JS array of strings, but
+ * other shapes can occur (e.g. nested JSON). Use this when you want a stable
+ * list of strings regardless of the underlying representation.
+ */
+export function asStringArray(value: unknown): string[] {
+  if (value == null) return [];
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v)).filter((v) => v.length > 0);
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((v) => String(v)).filter((v) => v.length > 0);
+        }
+      } catch {
+        // fall through to comma split
+      }
+    }
+    return trimmed
+      .split(/[,，]/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+  }
+  return [];
 }

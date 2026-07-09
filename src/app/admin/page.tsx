@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
 import { fetchAll, fetchOne } from "@/lib/db";
-import { IconTag, IconStore, IconFolder, IconInbox } from "@/components/admin/AdminIcons";
+import { IconTag, IconStore, IconFolder, IconInbox, IconBook } from "@/components/admin/AdminIcons";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "仪表盘 | 省钱兔 Admin", robots: { index: false } };
@@ -10,6 +10,7 @@ type Counts = {
   deals: number;
   brands: number;
   categories: number;
+  articles: number;
   submissions_pending: number;
   recent_deals: number; // last 7 days
   hot_deals: number;
@@ -23,12 +24,14 @@ async function loadCounts(): Promise<Counts & { recent: { id: string; title: str
     deals,
     brands,
     categories,
+    articles,
     submissions,
     recent,
   ] = await Promise.all([
     fetchOne<{ n: number }>("SELECT COUNT(*)::INT AS n FROM deals", []),
     fetchOne<{ n: number }>("SELECT COUNT(*)::INT AS n FROM brands", []),
     fetchOne<{ n: number }>("SELECT COUNT(*)::INT AS n FROM categories", []),
+    fetchOne<{ n: number }>("SELECT COUNT(*)::INT AS n FROM articles WHERE status = 'published'", []),
     fetchOne<{ n: number }>("SELECT COUNT(*)::INT AS n FROM deal_submissions WHERE status = 'pending'", []),
     fetchAll<{ id: string; title: string; created: number }>(
       "SELECT id, title, published_at::BIGINT AS created FROM deals ORDER BY published_at DESC LIMIT 8",
@@ -44,6 +47,7 @@ async function loadCounts(): Promise<Counts & { recent: { id: string; title: str
     deals: deals?.n ?? 0,
     brands: brands?.n ?? 0,
     categories: categories?.n ?? 0,
+    articles: articles?.n ?? 0,
     submissions_pending: submissions?.n ?? 0,
     recent_deals: recentDeals?.n ?? 0,
     hot_deals: hot?.n ?? 0,
@@ -109,7 +113,7 @@ export default async function AdminHomePage() {
         </p>
       </header>
 
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
         <StatCard
           label="总优惠数"
           value={data.deals}
@@ -130,6 +134,13 @@ export default async function AdminHomePage() {
           value={data.categories}
           href="/admin/categories"
           icon={<IconFolder className="h-5 w-5" />}
+          accent="purple"
+        />
+        <StatCard
+          label="文章"
+          value={data.articles}
+          href="/admin/articles"
+          icon={<IconBook className="h-5 w-5" />}
           accent="purple"
         />
         <StatCard
