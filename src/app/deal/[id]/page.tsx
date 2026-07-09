@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getDealFull, getDeals, getBrands, localImageFor } from "@/lib/deals";
-import { fetchAll } from "@/lib/db";
+import { fetchAll, fetchOne } from "@/lib/db";
+import { auth } from "@/auth";
 import { DealCard } from "@/components/DealCard";
 import { Sidebar } from "@/components/Sidebar";
 import { CoverLightbox } from "@/components/deal/CoverLightbox";
@@ -10,6 +11,7 @@ import { DealTabs } from "@/components/deal/DealTabs";
 import { ShoppingGuide } from "@/components/deal/ShoppingGuide";
 import { MobileCtaBar } from "@/components/deal/MobileCtaBar";
 import { ProductJsonLd, BreadcrumbJsonLd } from "@/components/deal/JsonLd";
+import { DealShareAndFavorite } from "@/components/deal/DealShareAndFavorite";
 
 type Params = { id: string };
 
@@ -55,6 +57,20 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
     ),
   ]);
   const related = allDeals.filter((d) => d.id !== deal.id).slice(0, 5);
+
+  // Auth-aware initial state for the share/favorite buttons. Reading the
+  // session here keeps the client component free of auth plumbing and
+  // prevents a "favorite then refresh" flash on the deal page.
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
+  let initialFavorited = false;
+  if (userId) {
+    const row = await fetchOne<{ user_id: string }>(
+      "SELECT user_id FROM favorites WHERE user_id = $1 AND deal_id = $2",
+      [userId, id],
+    );
+    initialFavorited = !!row;
+  }
 
   const ctaHref = deal.cta ?? `https://www.google.com/search?q=${encodeURIComponent(deal.brandName ?? deal.title)}`;
   const parentCat = pickParent(cats.map((c) => c.slug));
@@ -234,24 +250,13 @@ export default async function DealDetailPage({ params }: { params: Promise<Param
                         点击前往 {deal.brandName ?? "商家"}!
                       </button>
                     </a>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        title="分享"
-                        aria-label="分享"
-                        className="p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
-                      >
-                        <ShareIcon className="h-5 w-5 text-gray-500" />
-                      </button>
-                      <button
-                        type="button"
-                        title="收藏此优惠"
-                        aria-label="收藏此优惠"
-                        className="p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-gray-500"
-                      >
-                        <BookmarkIcon className="h-5 w-5" />
-                      </button>
-                    </div>
+                    <DealShareAndFavorite
+                      dealId={deal.id}
+                      dealTitle={deal.title}
+                      initialFavorited={initialFavorited}
+                      signedIn={!!userId}
+                      loginUrl={`/login?callbackUrl=${encodeURIComponent(`/deal/${deal.id}`)}`}
+                    />
                   </div>
 
                   {/* Expired line under CTA */}
@@ -402,51 +407,9 @@ function ChevronRight() {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="inline h-4 w-4 text-gray-300"
+      className="h-4 w-4"
     >
       <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
-
-function ShareIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <circle cx="18" cy="5" r="3" />
-      <circle cx="6" cy="12" r="3" />
-      <circle cx="18" cy="19" r="3" />
-      <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" />
-      <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />
-    </svg>
-  );
-}
-
-function BookmarkIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
     </svg>
   );
 }

@@ -147,6 +147,17 @@ async function ensureSchema() {
   await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_deal_categories_slug ON deal_categories(category_slug)`);
   await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_brands_sort ON brands(sort_order, name)`);
 
+  // ---------- Favorites (per-user bookmarks on /deal/[id]) ----------
+  await sql(Neonql`
+    CREATE TABLE IF NOT EXISTS favorites (
+      user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      deal_id    TEXT NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
+      created_at BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT,
+      PRIMARY KEY (user_id, deal_id)
+    )`);
+  await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_favorites_user_created ON favorites(user_id, created_at DESC)`);
+  await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_favorites_deal ON favorites(deal_id)`);
+
   // ---------- Articles (long-form /articles/* content) ----------
   await sql(Neonql`
     CREATE TABLE IF NOT EXISTS articles (
