@@ -8,6 +8,8 @@ export const SITE = {
   twitter: "https://x.com/DealSelected",
   facebook: "https://www.facebook.com/people/Deal-Selected/61585141210415/",
   email: "hello@buy.codestory.top",
+  emailContact: "hello@buy.codestory.top",
+  emailBusiness: "business@buy.codestory.top",
 } as const;
 
 export type SiteConfig = typeof SITE;
