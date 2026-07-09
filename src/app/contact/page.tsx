@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -30,118 +29,84 @@ function MailIcon({ className }: { className?: string }) {
   );
 }
 
-function HandshakeIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m11 17 2 2a1 1 0 1 0 3-3" />
-      <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4" />
-      <path d="m21 3 1 11h-2" />
-      <path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3" />
-      <path d="M3 4h8" />
-    </svg>
-  );
-}
-
-function ChevronRight() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
-
 export default function ContactPage() {
   return (
-    <>
-      <div className="border-b border-gray-200 bg-white py-3">
-        <div className="mx-auto max-w-3xl px-4">
-          <nav aria-label="面包屑">
-            <ol className="flex items-center gap-2 text-sm text-gray-500">
-              <li>
-                <Link
-                  href="/"
-                  className="hover:text-[#F97316] transition-colors whitespace-nowrap"
-                >
-                  首页
-                </Link>
-              </li>
-              <li className="flex items-center gap-2">
-                <ChevronRight />
-                <span className="text-gray-900">联系我们</span>
-              </li>
-            </ol>
-          </nav>
-        </div>
-      </div>
+    <div className="bg-[#f9fafb]">
+      <div className="mx-auto max-w-3xl px-4 py-12">
+        <h1
+          className="text-[24px] font-bold leading-[32px] text-gray-900"
+          style={{ marginBottom: "8px" }}
+        >
+          联系我们
+        </h1>
+        <p
+          className="text-[16px] leading-[24px] text-gray-500"
+          style={{ marginBottom: "32px" }}
+        >
+          有问题或建议？我们很乐意听取您的意见。
+        </p>
 
-      <div className="mx-auto max-w-3xl px-4 py-10">
-        <h1 className="text-3xl font-extrabold tracking-tight text-bunny-ink">联系我们</h1>
-        <p className="mt-3 text-bunny-muted">有问题或建议？我们很乐意听取您的意见。</p>
-
-        <section className="mt-8">
-          <h2 className="text-xl font-bold text-bunny-ink">发送邮件</h2>
-          <p className="mt-3 leading-relaxed text-bunny-muted">
+        <section style={{ marginBottom: "32px" }}>
+          <h2 className="text-[16px] font-semibold leading-[24px] text-gray-900">
+            发送邮件
+          </h2>
+          <p
+            className="text-[14px] leading-[20px] text-gray-600"
+            style={{ marginTop: "8px", marginBottom: "12px" }}
+          >
             对于一般咨询、合作或反馈：
           </p>
           <a
             href={`mailto:${SITE.emailContact}`}
-            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 transition hover:border-[#F97316] hover:text-[#F97316]"
+            className="inline-block text-[16px] font-medium text-[#f97316] hover:underline"
           >
-            <MailIcon className="h-4 w-4 text-gray-400" />
             {SITE.emailContact}
           </a>
         </section>
 
-        <section className="mt-10">
-          <h2 className="text-xl font-bold text-bunny-ink">商务合作</h2>
-          <p className="mt-3 leading-relaxed text-bunny-muted">
+        <section style={{ marginBottom: "32px" }}>
+          <h2 className="text-[16px] font-semibold leading-[24px] text-gray-900">
+            商务合作
+          </h2>
+          <p
+            className="text-[14px] leading-[20px] text-gray-600"
+            style={{ marginTop: "8px", marginBottom: "12px" }}
+          >
             如果您是品牌或商家，想要与我们合作推广优惠：
           </p>
           <a
             href={`mailto:${SITE.emailBusiness}`}
-            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 transition hover:border-[#F97316] hover:text-[#F97316]"
+            className="inline-block text-[16px] font-medium text-[#f97316] hover:underline"
           >
-            <HandshakeIcon className="h-4 w-4 text-gray-400" />
             {SITE.emailBusiness}
           </a>
         </section>
 
-        <section className="mt-10">
-          <h2 className="text-xl font-bold text-bunny-ink">提交优惠</h2>
-          <p className="mt-3 leading-relaxed text-bunny-muted">
+        <section>
+          <h2
+            className="text-[16px] font-semibold leading-[24px] text-gray-900"
+            style={{ marginBottom: "8px" }}
+          >
+            提交优惠
+          </h2>
+          <p className="text-[14px] leading-[20px] text-gray-600">
             发现了好优惠想要分享？
-            <Link href="/submit" className="ml-1 font-medium text-[#F97316] hover:underline">
+            <a
+              href="/submit"
+              className="ml-1 font-medium text-[#f97316] hover:underline"
+            >
               点击这里提交
-            </Link>
+            </a>
           </p>
         </section>
 
-        <p className="mt-12 text-sm text-gray-400">
+        <p
+          className="text-[14px] leading-[20px] text-gray-400"
+          style={{ marginTop: "24px" }}
+        >
           我们通常会在 1-2 个工作日内回复您的邮件。
         </p>
       </div>
-    </>
+    </div>
   );
 }
