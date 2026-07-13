@@ -57,6 +57,8 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [, startNav] = useTransition();
 
+  if (pathname?.startsWith("/admin")) return null;
+
   const currentTab = pathname === "/" && search.get("tab") === "popular" ? "popular" : "latest";
 
   const setTab = (tab: "latest" | "popular") => {

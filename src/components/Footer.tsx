@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { SITE } from "@/lib/site";
 
 export function Footer() {
   const { data: session } = useSession();
+  const pathname = usePathname();
   const [pending, setPending] = useState(false);
   const email = session?.user?.email ?? null;
+  if (pathname?.startsWith("/admin")) return null;
   return (
     <footer className="mt-16 border-t border-gray-100 bg-white">
       <div className="border-b border-gray-100">
