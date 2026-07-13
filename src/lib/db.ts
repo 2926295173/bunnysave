@@ -174,6 +174,19 @@ async function ensureSchema() {
     )`);
   await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DESC)`);
   await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status, published_at DESC)`);
+
+  // ---------- Newsletter subscribers ----------
+  await sql(Neonql`
+    CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+      email       TEXT PRIMARY KEY,
+      source      TEXT,
+      ip          TEXT,
+      user_agent  TEXT,
+      confirmed   BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at  BIGINT  NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT,
+      unsubscribed_at BIGINT
+    )`);
+  await sql(Neonql`CREATE INDEX IF NOT EXISTS idx_newsletter_created ON newsletter_subscribers(created_at DESC)`);
 }
 
 // Wrapper const so we can use tagged-template syntax.

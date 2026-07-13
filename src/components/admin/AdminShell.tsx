@@ -11,6 +11,7 @@ import {
   IconHistory,
   IconHome,
   IconBook,
+  IconMail,
 } from "./AdminIcons";
 
 type NavItem = { href: string; label: string; icon: React.ReactNode };
@@ -22,6 +23,7 @@ const ITEMS: NavItem[] = [
   { href: "/admin/categories", label: "分类", icon: <IconFolder className="h-4 w-4" /> },
   { href: "/admin/articles", label: "文章", icon: <IconBook className="h-4 w-4" /> },
   { href: "/admin/submissions", label: "投稿", icon: <IconInbox className="h-4 w-4" /> },
+  { href: "/admin/newsletter", label: "邮件订阅", icon: <IconMail className="h-4 w-4" /> },
   { href: "/admin/audit", label: "审计日志", icon: <IconHistory className="h-4 w-4" /> },
 ];
 
