@@ -28,7 +28,7 @@ const ITEMS: NavItem[] = [
 export function AdminShell({ email, children }: { email: string; children: React.ReactNode }) {
   const pathname = usePathname();
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-[#FAF9F7]">
+    <div className="min-h-[calc(100vh-5rem)] bg-[#FAF9F7] text-[15px]">
       <div className="mx-auto flex max-w-6xl gap-6 px-4 py-6">
         <aside className="hidden md:flex w-60 flex-shrink-0 flex-col">
           <div className="sticky top-24 space-y-4">

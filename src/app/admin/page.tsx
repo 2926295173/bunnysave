@@ -86,9 +86,9 @@ function StatCard({
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
-        {hint ? <p className="text-xs text-gray-400">{hint}</p> : null}
+        <p className="text-sm text-gray-500">{label}</p>
+        <p className="text-3xl font-bold text-gray-900">{value}</p>
+        {hint ? <p className="text-sm text-gray-400">{hint}</p> : null}
       </div>
     </Link>
   );
@@ -107,7 +107,7 @@ export default async function AdminHomePage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">仪表盘</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">仪表盘</h1>
         <p className="mt-1 text-sm text-gray-500">
           快速浏览当前商品、商家、待审稿数量，并直达编辑入口。
         </p>
@@ -154,7 +154,7 @@ export default async function AdminHomePage() {
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-gray-800">状态</h2>
+          <h2 className="text-base font-semibold text-gray-800">状态</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <Row label="热门优惠" value={data.hot_deals} />
             <Row label="免费 / 超低价" value={data.free_deals} />
@@ -164,7 +164,7 @@ export default async function AdminHomePage() {
 
         <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-800">最新优惠</h2>
+            <h2 className="text-base font-semibold text-gray-800">最新优惠</h2>
             <Link href="/admin/deals" className="text-xs font-medium text-[#F97316] hover:underline">
               查看全部 →
             </Link>
