@@ -8,6 +8,8 @@ import {
   getDeals,
   type Category,
 } from "@/lib/deals";
+import { joinNonEmpty, presentText } from "@/lib/text";
+import { SITE } from "@/lib/site";
 import { DealCard } from "@/components/DealCard";
 
 /**
@@ -54,14 +56,13 @@ export async function generateMetadata({
   const cat = await categoryFor(slug[0]);
   if (!cat) return { title: "分类不存在" };
   const subLabel = await subcategoryLabel(slug);
-  const title = subLabel
-    ? `${subLabel} - ${cat.label} - ${cat.description}`
-    : `${cat.label} - ${cat.description}`;
+  const titleBase = joinNonEmpty([subLabel, cat.label, presentText(cat.description)], " - ");
+  const title = titleBase || `${cat.label} | ${SITE.name}`;
   return {
     title,
     description: subLabel
-      ? `${cat.description}。当前分类：${subLabel}`
-      : `${cat.description}`,
+      ? `${presentText(cat.description, "优惠合集")}。当前分类：${subLabel}`
+      : presentText(cat.description, "优惠合集"),
     robots: { index: true, follow: true },
   };
 }
