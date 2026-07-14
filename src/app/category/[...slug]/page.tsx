@@ -53,10 +53,15 @@ export async function generateMetadata({
   const { slug = [] } = await params;
   const cat = await categoryFor(slug[0]);
   if (!cat) return { title: "分类不存在" };
-  const label = await subcategoryLabel(slug);
+  const subLabel = await subcategoryLabel(slug);
+  const title = subLabel
+    ? `${subLabel} - ${cat.label} - ${cat.description}`
+    : `${cat.label} - ${cat.description}`;
   return {
-    title: `${label} | ${cat.label} - ${cat.description}`,
-    description: `${cat.description}。当前分类：${label}`,
+    title,
+    description: subLabel
+      ? `${cat.description}。当前分类：${subLabel}`
+      : `${cat.description}`,
     robots: { index: true, follow: true },
   };
 }
